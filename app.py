@@ -1,27 +1,19 @@
 from flask import Flask, request, make_response
-from slack_sdk import WebClient
-from slack_sdk.errors import SlackApiError
 import requests
-import json
-import os
+from datetime import datetime
+from bs4 import BeautifulSoup as bs
+import slackbot_info as sb_info
+from apscheduler.schedulers.background import BackgroundScheduler
+
+
+
+CHANNEL_ID = sb_info.get_channel_id('slack-bot')
+POSTS = []
 
 app = Flask(__name__)
-token = os.environ['SLACKBOT_TOKEN']
-slackAPI = WebClient(token = token)
-channel_name = "slack-bot" 
-user_name = "choiyt3465"
-query = "슬랙 봇 테스트"
-text =  '''
-        *자동 생성 문구 테스트*
-        '''
-
-
-@app.route('/')
-def hello_world():
-    return "Hello World!"
 
 @app.route('/view_post', methods = ['POST'])
-def get_user_id(self, member_name):
+def get_user_id(member_name):
     """
     슬랙 채널ID 조회
     """
@@ -36,23 +28,6 @@ def get_user_id(self, member_name):
 
     return member_id
 
-@app.route('/view_post')
-def get_channel_id(self, channel_name):
-    """
-    슬랙 채널ID 조회
-    """
-    # conversations_list() 메서드 호출
-    result = self.client.conversations_list()
-    # 채널 정보 딕셔너리 리스트
-    channels = result.data['channels']
-    # 채널 명이 'test'인 채널 딕셔너리 쿼리
-    channel = list(filter(lambda c: c["name"] == channel_name, channels))[0]
-    # 채널ID 파싱
-    channel_id = channel["id"]
-
-    print('channel_id:',channel_id)
-
-    return channel_id
 
 def get_message_ts(self, channel_id, query):
         """
@@ -88,259 +63,105 @@ def post_thread_message(self, channel_id, message_ts, text):
         )
         return result
 
-def post_message(self, channel_id, text):
-        """
-        슬랙 채널에 메세지 보내기
-        """
-        # chat_postMessage() 메서드 호출
-        result = self.client.chat_postMessage(
-            channel=channel_id,
-            text = "슬랙채널 메시지",
-            attachments = [
-        {
-            "text": "Choose a game to play",
-            "fallback": "You are unable to choose a game",
-            "callback_id": "wopr_game",
-            "color": "#3AA3E3",
-            "attachment_type": "default",
-            "actions": [
-                {
-                    "name": "game",
-                    "text": "Chess",
-                    "type": "button",
-                    "value": "chess"
-                },
-                {
-                    "name": "game",
-                    "text": "Falken's Maze",
-                    "type": "button",
-                    "value": "maze"
-                },
-                {
-                    "name": "game",
-                    "text": "Thermonuclear War",
-                    "style": "danger",
-                    "type": "button",
-                    "value": "war",
-                    "confirm": {
-                        "title": "Are you sure?",
-                        "text": "Wouldn't you prefer a good game of chess?",
-                        "ok_text": "Yes",
-                        "dismiss_text": "No"
-                    }
-                }
-            ]
-        }
-    ]
-        )
-
-        print('result:', result)
-
-        return result
 
 def post_message_user(self, channel_id, user_id):
         response = self.client.chat_postEphemeral(
             channel=channel_id,
             text="안녕하세요 :tada:",
             user=user_id
-
         )
-@app.route('/modal', methods=['POST'])
-def get_modal():
-        slack_event = json.loads(request.data)
-        print(slack_event)
-        return make_response({"challenge":slack_event["challenge"]}, 200, {"content_type":"application/json"})
-        # response = slackAPI.views_open(
-        #     trigger_id = body["trigger_id"],
-        #     view={
-        #         "type": "modal",
-        #         "callback_id": "view_4",
-        #         "title": {"type": "plain_text", "text": "견적서 출력"},
-        #         "submit": {"type": "plain_text", "text": "견적서 생성하기"},
-        #         "blocks": [
-        #             {
-        #                 "type": "input",
-        #                 "block_id": "making_estimate1",
-        #                 "element": {
-        #                     "type": "static_select",
-        #                     "placeholder": {
-        #                         "type": "plain_text",
-        #                         "text": "인입 경로를 선택해주세요.",
-        #                     },
-        #                     "options": [
-        #                         {
-        #                             "text": {
-        #                                 "type": "plain_text",
-        #                                 "text": "1회",
-        #                             },
-        #                             "value": "1회",
-        #                         },
-        #                         {
-        #                             "text": {
-        #                                 "type": "plain_text",
-        #                                 "text": "2회",
-        #                             },
-        #                             "value": "2회",
-        #                         },
-        #                         {
-        #                             "text": {
-        #                                 "type": "plain_text",
-        #                                 "text": "3회",
-        #                             },
-        #                             "value": "3회",
-        #                         },
-        #                         {
-        #                             "text": {
-        #                                 "type": "plain_text",
-        #                                 "text": "4회",
-        #                             },
-        #                             "value": "4회",
-        #                         },
-        #                     ],
-        #                     "action_id": "input_request_route",
-        #                 },
-        #                 "label": {"type": "plain_text", "text": "인입 경로"},
-        #             },
-        #             {
-        #                 "type": "input",
-        #                 "block_id": "making_estimate2",
-        #                 "element": {
-        #                     "type": "plain_text_input",
-        #                     "action_id": "input_company_name",
-        #                 },
-        #                 "label": {"type": "plain_text", "text": "회사명/고객명"},
-        #             },
-        #             {
-        #                 "type": "input",
-        #                 "block_id": "making_estimate3",
-        #                 "element": {
-        #                     "type": "plain_text_input",
-        #                     "action_id": "input_company_email",
-        #                 },
-        #                 "label": {"type": "plain_text", "text": "회사 이메일(없으면 '-'라고 적기)"},
-        #             },
-        #             {
-        #                 "type": "input",
-        #                 "block_id": "making_estimate4",
-        #                 "element": {
-        #                     "type": "radio_buttons",
-        #                     "options": [
-        #                         {
-        #                             "text": {
-        #                                 "type": "plain_text",
-        #                                 "text": "매주",
-        #                             },
-        #                             "value": "매주",
-        #                         },
-        #                         {
-        #                             "text": {
-        #                                 "type": "plain_text",
-        #                                 "text": "격주",
-        #                             },
-        #                             "value": "격주",
-        #                         },
-        #                     ],
-        #                     "action_id": "input_week_period",
-        #                 },
-        #                 "label": {"type": "plain_text", "text": "매주/격주 여부"},
-        #             },
-        #             {
-        #                 "type": "input",
-        #                 "block_id": "making_estimate5",
-        #                 "element": {
-        #                     "type": "static_select",
-        #                     "placeholder": {
-        #                         "type": "plain_text",
-        #                         "text": "주당 횟수를 선택해주세요.",
-        #                     },
-        #                     "options": [
-        #                         {
-        #                             "text": {
-        #                                 "type": "plain_text",
-        #                                 "text": "1회",
-        #                             },
-        #                             "value": "1회",
-        #                         },
-        #                         {
-        #                             "text": {
-        #                                 "type": "plain_text",
-        #                                 "text": "2회",
-        #                             },
-        #                             "value": "2회",
-        #                         },
-        #                         {
-        #                             "text": {
-        #                                 "type": "plain_text",
-        #                                 "text": "3회",
-        #                             },
-        #                             "value": "3회",
-        #                         },
-        #                         {
-        #                             "text": {
-        #                                 "type": "plain_text",
-        #                                 "text": "4회",
-        #                             },
-        #                             "value": "4회",
-        #                         },
-        #                         {
-        #                             "text": {
-        #                                 "type": "plain_text",
-        #                                 "text": "5회",
-        #                             },
-        #                             "value": "5회",
-        #                         },
-        #                         {
-        #                             "text": {
-        #                                 "type": "plain_text",
-        #                                 "text": "6회",
-        #                             },
-        #                             "value": "6회",
-        #                         },
-        #                         {
-        #                             "text": {
-        #                                 "type": "plain_text",
-        #                                 "text": "7회",
-        #                             },
-        #                             "value": "7회",
-        #                         },
-        #                     ],
-        #                     "action_id": "input_times_per_week",
-        #                 },
-        #                 "label": {"type": "plain_text", "text": "주당 청소 횟수"},
-        #             },
-        #             {
-        #                 "type": "input",
-        #                 "block_id": "making_estimate6",
-        #                 "element": {
-        #                     "type": "radio_buttons",
-        #                     "options": [
-        #                         {
-        #                             "text": {
-        #                                 "type": "plain_text",
-        #                                 "text": "2시간",
-        #                             },
-        #                             "value": "2시간",
-        #                         },
-        #                         {
-        #                             "text": {
-        #                                 "type": "plain_text",
-        #                                 "text": "3시간",
-        #                             },
-        #                             "value": "3시간",
-        #                         },
-        #                         {
-        #                             "text": {
-        #                                 "type": "plain_text",
-        #                                 "text": "4시간",
-        #                             },
-        #                             "value": "4시간",
-        #                         },
-        #                     ],
-        #                     "action_id": "input_times_per_service",
-        #                 },
-        #                 "label": {"type": "plain_text", "text": "1회당 청소 시간"},
-        #             },
-        #         ],
-        #     },
-        # )
-        # 
+
+
+def post_message(channel_id, text, blocks):
+        """
+        슬랙 채널에 메세지 보내기
+        """
+        # chat_postMessage() 메서드 호출
+        header = sb_info.get_header()
+        data = {"channel":channel_id, "text":text, "blocks":blocks}
+        response = requests.post("https://slack.com/api/chat.postMessage", headers = header, json = data)
+        print(data)
+        print('result:', response.text)
+
+        return response.text
+     
+
+def make_block(notification_title, notification_url):
+    return [
+        {
+			"type": "header",
+			"text": {
+				"type": "plain_text",
+				"text": "업로드된 학사 공지",
+				"emoji": True
+			}
+		},
+        {
+			"type": "divider"
+		},
+		{
+			"type": "section",
+			"text": 
+            {
+				"type": "mrkdwn",
+				"text": '*공지 제목*:\n' + notification_title
+			}
+		},
+        {
+			"type": "section",
+			"text": 
+            {
+				"type": "mrkdwn",
+				"text": '*바로 가기*:\n' + notification_url
+			}
+		}
+	]
+
+# Scheduled Funtion
+def get_notification():
+    app.logger.info("Scheduler -> get_notification")
+
+    request_url = "https://computer.cnu.ac.kr/computer/notice/bachelor.do"
+    response = requests.get(request_url)
+    response.raise_for_status()
+    soup = bs(response.text, "html.parser")
+    
+    # 오늘 날짜
+    today = datetime.today().strftime("%Y.%m.%d")[2:]
+    
+    # 공지 날짜
+    date_list = list(enumerate(map((lambda e: e.text.strip()),soup.select('td.b-td-left div.b-m-con span.b-date'))))
+
+    # 공지 번호
+    post_num_list = list(enumerate(map((lambda e: e.text.strip()),soup.select('td.b-num-box'))))
+
+    # 공지 내용
+    content_list = list(enumerate(map((lambda e: {'title':e.attrs['title'],'href':request_url+e.attrs['href']})
+                                      ,soup.select('td.b-td-left div.b-title-box a'))))
+
+    for index, date_element in enumerate(date_list):
+          date_text = date_element[-1]
+          post_num = post_num_list[index][-1]
+          content = content_list[index][-1]
+
+          # 공지가 오늘 날짜이면서, 이미 갱신된 POST가 아닐 경우에만
+
+          if date_text == today and not post_num in POSTS:
+                print('content:',content)
+                print('today',today,'posted_date:',date_text,'num:',post_num)
+                POSTS.append(post_num)
+                title = content['title']
+                url = content['href']
+                block = make_block(notification_title = title, notification_url = url)
+                response_text = post_message(channel_id = CHANNEL_ID, text = "오늘의 학사공지 소식입니다.", blocks = block)
+                print(response_text)
+
+
+sched = BackgroundScheduler()
+sched.add_job(get_notification, 'interval', seconds = 300)
+sched.add_job(POSTS.clear, 'cron', hour='12')
+sched.start()
+
+if __name__=='__main__':      
+      app.logger.info("server on :: PORT="+str(8081))
+      app.run(debug = True, user_reloader=False)
