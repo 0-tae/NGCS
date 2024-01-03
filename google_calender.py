@@ -6,6 +6,7 @@ from datetime import datetime
 import calendar as module_calendar
 import os.path
 import pytz
+import json
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -70,21 +71,23 @@ class GoogleCalendarAPI:
     # "week" 옵션일 때,  이번 달의 해당하는 한 주차 스케줄을 가져옴 (좀 복잡함)
     # "today" 옵션일 때, 금일의 스케줄을 가져옴(default)
 
-    time_min = now
+    time_min = now.isoformat()
     time_max = None
 
     if option == "month":
       last_day_of_month = module_calendar.monthrange(now.year, now.month)[1]
-      time_max = datetime(now.year, now.month, last_day_of_month)
+      time_max = datetime(now.year, now.month, last_day_of_month).astimezone(SEOUL_TIMEZONE).isoformat()
 
 
     print("TIMEMAX",time_max)
+    print("TIMEMIN",time_min)
+
     events_result = (
         self.instance.events()
         .list(
             calendarId="primary",
-            timeMin=time_min.isoformat(),
-            timeMax=time_max.isoformat(),
+            timeMin=time_min,
+            timeMax=time_max,
             singleEvents=True,
             orderBy="startTime",
         )
@@ -99,10 +102,14 @@ class GoogleCalendarAPI:
 
     # Prints the start and name of the next 10 events
     for event in events:
-      print(event)
+      print(prettier(event))
       start = event["start"].get("dateTime", event["start"].get("date"))
       print(start, event["summary"])
 
+
+
+def prettier(data):
+  return json.dumps(data, indent=4, separators=(",", ":"), sort_keys=True)
 
 calendar = GoogleCalendarAPI()
 calendar.get_events(option="month")
