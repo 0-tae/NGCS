@@ -4,7 +4,7 @@ from datetime import datetime
 from bs4 import BeautifulSoup as bs
 import slackbot_info as sb_info
 from apscheduler.schedulers.background import BackgroundScheduler
-from app import post_message
+from slackbot_sender import post_message
 import time
 
 CHANNEL_ID = sb_info.get_channel_id('slack-bot')
