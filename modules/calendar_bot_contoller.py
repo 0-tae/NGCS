@@ -118,6 +118,7 @@ def create_forward_path(request_body):
 
     return action_path_dict[action_type]
 
+
 @app.route('/interaction', methods = ['POST'])
 def interactivity_controll():
     # Slack이 Content-Type이 x-from-included-data인 request를 보냄
@@ -128,6 +129,8 @@ def interactivity_controll():
     forward_path = create_forward_path(request_body)
 
     return redirect(forward_path)
+
+
 
 @app.route('/calendar/refresh')
 def calendar_refresh():
