@@ -4,6 +4,7 @@ from slack_sdk.errors import SlackApiError
 import requests
 from datetime import datetime
 from bs4 import BeautifulSoup as bs
+import time
 import json
 import os
 
@@ -17,15 +18,20 @@ def get_user_list():
 
       return USER_LIST
 
-# 발생 조건 미구현
 def __fetch_user_list__():
       # 유저 목록 초기화
       USER_LIST.clear()
       
       header = get_header()
-
-      # TODO: api Tier가 높아, 쿨타임에 가져오지 못하는 현상 고치기
-      response = requests.get("https://slack.com/api/users.list", headers = header).json()
+      
+      # api Tier가 높아, 응답을 가져오지 못하는 현상
+      
+      tried = 0
+      while tried < 3:
+            response = requests.get("https://slack.com/api/users.list", headers = header).json()
+            if response['ok']: break
+            print("Retry for user list..")
+            time.sleep(3)
       
       # 유저 목록 갱신
       for member in response['members']:
