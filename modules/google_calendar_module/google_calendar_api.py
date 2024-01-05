@@ -14,7 +14,7 @@ from googleapiclient.errors import HttpError
 # If modifying these scopes, delete the file token.json.
 SCOPES = ["https://www.googleapis.com/auth/calendar.events"]
 SEOUL_TIMEZONE = pytz.timezone('Asia/Seoul')
-PREFIX = "google_calendar_api"
+PREFIX = "google_calendar_module"
 
 class GoogleCalendarAPI:
   creds = None
@@ -28,7 +28,7 @@ class GoogleCalendarAPI:
     # The file token.json stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first
     # time.
-    if os.path.exists(f"g{PREFIX}/token.json"):
+    if os.path.exists(f"{PREFIX}/token.json"):
       self.creds = Credentials.from_authorized_user_file(f"{PREFIX}/token.json", SCOPES)
     # If there are no (valid) credentials available, let the user log in.
     if not self.creds or not self.creds.valid:
