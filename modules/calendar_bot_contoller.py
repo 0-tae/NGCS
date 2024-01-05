@@ -130,8 +130,6 @@ def interactivity_controll():
 
     return redirect(forward_path)
 
-
-
 @app.route('/calendar/refresh')
 def calendar_refresh():
     apphome.refresh_view()

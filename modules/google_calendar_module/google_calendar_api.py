@@ -1,5 +1,3 @@
-from flask import Flask, request, make_response
-import requests
 from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import datetime, timedelta
 import calendar as module_calendar
@@ -16,7 +14,7 @@ from googleapiclient.errors import HttpError
 # If modifying these scopes, delete the file token.json.
 SCOPES = ["https://www.googleapis.com/auth/calendar.events"]
 SEOUL_TIMEZONE = pytz.timezone('Asia/Seoul')
-
+PREFIX = "google_calendar_api"
 
 class GoogleCalendarAPI:
   creds = None
@@ -30,19 +28,19 @@ class GoogleCalendarAPI:
     # The file token.json stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first
     # time.
-    if os.path.exists("google_calendar_api_module/token.json"):
-      self.creds = Credentials.from_authorized_user_file("google_calendar_api_module/token.json", SCOPES)
+    if os.path.exists(f"g{PREFIX}/token.json"):
+      self.creds = Credentials.from_authorized_user_file(f"{PREFIX}/token.json", SCOPES)
     # If there are no (valid) credentials available, let the user log in.
     if not self.creds or not self.creds.valid:
       if self.creds and self.creds.expired and self.creds.refresh_token:
         self.creds.refresh(Request())
       else:
         flow = InstalledAppFlow.from_client_secrets_file(
-            "google_calendar_api_module/credentials.json", SCOPES
+            f"{PREFIX}/credentials.json", SCOPES
         )
         self.creds = flow.run_local_server(port=0)
       # Save the credentials for the next run
-      with open("google_calendar_api_module/token.json", "w") as token:
+      with open(f"{PREFIX}/token.json", "w") as token:
         token.write(self.creds.to_json())
     
     self.instance = build("calendar", "v3", credentials=self.creds)
