@@ -43,6 +43,7 @@ def interactivity_controll():
     url_encoded_data = request.get_data(as_text=True)
     request_body = json.loads(parse.unquote(url_encoded_data).split("payload=")[-1])
 
+    print(request_body)
     forward_path = create_forward_path(request_body)
 
     return redirect(forward_path)

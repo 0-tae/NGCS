@@ -67,8 +67,7 @@ def modal_open(view, trigger_id):
     response = requests.post(
         "https://slack.com/api/views.open", headers=HEADER, json=data
     )
-    print("result:", response.text)
-
+    
     return response.text
 
 

@@ -1,6 +1,4 @@
 from flask import Flask, request, make_response
-from slack_sdk import WebClient
-from slack_sdk.errors import SlackApiError
 import requests
 from datetime import datetime
 from bs4 import BeautifulSoup as bs

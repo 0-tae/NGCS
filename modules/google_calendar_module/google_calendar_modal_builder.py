@@ -65,17 +65,17 @@ class CalendarModal:
 
         view["blocks"] = block_list
 
-    def set_view_properties(self, view, key, value):
+    def set_view_component_properties(self, view, key, value):
         view[key] = {"type": "plain_text", "text": value}
 
     def get_default_view(self):
         view = {}
-        self.set_view_properties(view=view, key="type", value="modal")
-        self.set_view_properties(view=view, key="title", value="휴가 및 일정 선택")
-        self.set_view_properties(view=view, key="submit", value="제출")
-        self.set_view_properties(view=view, key="close", value="취소")
-        self.set_view_properties(view=view, key="callback_id", value="modal_submit")
-        self.set_view_properties(view=view, key="private_metadata", value="None")
+        view["type"] = "modal"
+        view["callback_id"] = "modal_submit"
+        view["private_metadata"] = "None"
+        self.set_view_component_properties(view=view, key="title", value="휴가 및 일정 선택")
+        self.set_view_component_properties(view=view, key="submit", value="제출")
+        self.set_view_component_properties(view=view, key="close", value="취소")
 
         return view
 

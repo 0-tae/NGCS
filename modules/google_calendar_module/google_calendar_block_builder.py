@@ -11,6 +11,7 @@ class CalendarBlockBuilder:
             "text": {
                 "type": "plain_text",
                 "text": text,
+                "emoji": True
             },
         }
 
