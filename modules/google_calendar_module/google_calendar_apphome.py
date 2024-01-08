@@ -38,16 +38,10 @@ class AppHomeComponent:
                             "새로 고침:arrows_counterclockwise:", "read_calendar-refresh"
                         ),
                         block_builder.create_button(
-                            "일정 및 휴가 등록", "update_calendar-modal_open"
+                            "휴가 등록", "update_calendar-modal_open_vacation"
                         ),
                         block_builder.create_button(
-                            "오늘 휴가:basketball:", "read_calendar-today_vacation"
-                        ),
-                        block_builder.create_button(
-                            "오늘 일정:basketball:", "read_calendar-today_event"
-                        ),
-                        block_builder.create_button(
-                            "이번 달 휴가자:basketball:", "read_calendar-month_vacation"
+                            "일정 등록", "update_calendar-modal_open_event"
                         ),
                     ],
                 },

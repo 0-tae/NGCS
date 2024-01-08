@@ -8,11 +8,7 @@ class CalendarBlockBuilder:
     def create_block_header(self, text):
         block = {
             "type": "header",
-            "text": {
-                "type": "plain_text",
-                "text": text,
-                "emoji": True
-            },
+            "text": {"type": "plain_text", "text": text, "emoji": True},
         }
 
         return block
@@ -105,8 +101,8 @@ class CalendarBlockBuilder:
     def create_datepicker(self, action_id):
         return {"type": "datepicker", "action_id": action_id}
 
-    def create_timepicker(self, action_id):
-        return {"type": "timepicker", "action_id": action_id}
+    def create_timepicker(self, action_id, init_time):
+        return {"type": "timepicker", "initial_time": init_time, "action_id": action_id}
 
     def create_actions(self, actions):
         elements = []

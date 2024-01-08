@@ -62,12 +62,20 @@ def post_message(channel_id, text, blocks):
 
 def modal_open(view, trigger_id):
     data = {"trigger_id": trigger_id, "view": view}
-    print(sb_info.json_prettier(view))
-
     response = requests.post(
         "https://slack.com/api/views.open", headers=HEADER, json=data
     )
-    
+
+    return response.text
+
+
+def modal_update(view, view_id):
+    data = {"view": view, "view_id": view_id}
+
+    response = requests.post(
+        "https://slack.com/api/views.update", headers=HEADER, json=data
+    )
+
     return response.text
 
 
@@ -77,3 +85,7 @@ def app_home_publish(user_id, view):
         "https://slack.com/api/views.publish", headers=HEADER, json=data
     )
     print("user_id:", user_id, ", OK: ", response.json()["ok"])
+
+
+def json_prettier(data):
+    return json.dumps(data, indent=4, separators=(",", ":"), sort_keys=True)
