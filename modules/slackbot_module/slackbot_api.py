@@ -2,7 +2,6 @@ import requests
 import slackbot_module.slackbot_info as sb_info
 import json
 
-CHANNEL_ID = sb_info.get_channel_id("slack-bot")
 HEADER = sb_info.get_header()
 
 
@@ -44,7 +43,6 @@ def post_message_user(channel_id, user_id, text, blocks):
     response = requests.post(
         "https://slack.com/api/chat.postEphemeral", headers=HEADER, json=data
     )
-    print("result:", response.text)
 
     return response.text
 
@@ -55,27 +53,29 @@ def post_message(channel_id, text, blocks):
     response = requests.post(
         "https://slack.com/api/chat.postMessage", headers=HEADER, json=data
     )
-    print("result:", response.text)
 
     return response.text
 
 
 def modal_open(view, trigger_id):
     data = {"trigger_id": trigger_id, "view": view}
+
     response = requests.post(
         "https://slack.com/api/views.open", headers=HEADER, json=data
     )
+    print(json_prettier(data["view"]))
+    print(json_prettier(response.json()))
 
     return response.text
 
 
-def modal_update(view, view_id):
-    data = {"view": view, "view_id": view_id}
+def modal_update(view, view_id, response_action):
+    data = {"view": view, "view_id": view_id, "response_action": response_action}
 
     response = requests.post(
         "https://slack.com/api/views.update", headers=HEADER, json=data
     )
-
+    print(response.text)
     return response.text
 
 
@@ -85,6 +85,18 @@ def app_home_publish(user_id, view):
         "https://slack.com/api/views.publish", headers=HEADER, json=data
     )
     print("user_id:", user_id, ", OK: ", response.json()["ok"])
+
+
+def get_users_list():
+    response = requests.get("https://slack.com/api/users.list", headers=HEADER)
+
+    print(json_prettier(response.json()))
+    return response.json()
+
+
+def get_channels_list():
+    response = requests.get("https://slack.com/api/conversations.list", headers=HEADER)
+    return response.json()
 
 
 def json_prettier(data):

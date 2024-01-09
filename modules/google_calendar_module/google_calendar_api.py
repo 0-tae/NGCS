@@ -56,10 +56,13 @@ class GoogleCalendarAPI:
     # event_request = Dict {summary, start, end, all-day}
     def insert_event(self, event_request):
         body = self.event_request_convert(event_request=event_request)
+
+        print("body:", body)
         events_result = (
             self.instance.events().insert(calendarId="primary", body=body).execute()
         )
 
+        print(events_result)
         return events_result
 
     # event_request를 API 규격에 맞는 body로 변환
@@ -96,18 +99,6 @@ class GoogleCalendarAPI:
     def is_vacation(self, summary):
         vacation_type = ["반차", "연차"]
         return any(k in summary for k in vacation_type)
-
-    # 캘린더에 휴가 등록
-    # 연차(day_off), 시간연차(part_day_off), 반차(half_day).. 굳이 영문 매핑을 해야 할까?
-    def insert_vacation(self, event_request):
-        # 반차는 시작 시간대를 확인하고 오전인지, 오후인지 분석
-        if event_request["vacation"] == "반차":
-            event_request["vacation"] = (
-                "오전 반차" if self.is_AM_range(event_request["start"]["date"]) else "오후 반차"
-            )
-
-        # 시간연차, 연차일 경우는 달리 작업할 것 없음
-        return self.insert_event(event_request=event_request)
 
     # 캘린더에서 휴가 받아오기
     # 일정에서 휴가만 필터링 하는 방식
@@ -181,8 +172,12 @@ class GoogleCalendarAPI:
         return result
 
     def make_response(self, event):
+        print(event)
+
         response = {
-            "summary": event["summary"],
+            "summary": "(제목 없음)"
+            if event.get("summary") == None
+            else event.get("summary"),
             "start": event["start"].get("dateTime")
             if event["start"].get("dateTime")
             else event["start"].get("date"),

@@ -7,9 +7,7 @@ from google_calendar_module.google_calendar_view_template import (
 
 
 class CalendarVacationModal:
-    __modals__ = {"vacation": "not created", "event": "not created"}
-    __view_template_dict__ = dict()
-
+    # 템플릿 매니저에 모달 뷰 템플릿을 정의
     def __init__(self):
         template_manager.create_view_template(
             "vacation",
@@ -25,30 +23,114 @@ class CalendarVacationModal:
             "event",
             template_options=(
                 "line_1_header",
-                "field1_actions",
-                "field2_header",
-                "field2_actions",
+                "line_2_actions",
+                "line_3_header",
+                "line_4_actions",
+                "line_5_header_hidable",
+                "line_6_actions_hidable",
+                "line_7_header",
+                "line_8_actions",
             ),
         )
 
-    def get_modal(self, modal_name):
+    def after_submit(self, creator_id):
+        template_manager.destroy_template_cache(creator_id)
+
+    # 이름에 해당하는 모달창을 얻어옴
+    def get_modal(self, modal_name, creator_id):
         modal_creater = {
             "vacation": self.create_vacation_insert_modal,
-            "event": "미구현~~",
+            "event": self.create_event_insert_modal,
         }
 
-        self.__modals__[modal_name] = modal_creater[modal_name]()
-        modal = self.__modals__[modal_name]
+        return modal_creater[modal_name](creator_id)
 
-        return modal
+    # 일정 등록 모달창을 생성함
+    def create_event_insert_modal(self, creator_id):
+        template = template_manager.get_template_by_name("event")
+        template.set_template_all(
+            blocks=(
+                block_builder.create_block_header("등록할 일정"),
+                block_builder.create_input_text(
+                    action_id="update_calendar-modal_event_summary"
+                ),
+                block_builder.create_block_header("날짜 선택"),
+                block_builder.create_actions(
+                    actions=(
+                        block_builder.create_datepicker(
+                            action_id="update_calendar-modal_event_date"
+                        ),
+                        block_builder.create_checkboxes(
+                            action_id="update_calendar-modal_event_allday",
+                            options=("하루종일",),
+                        ),
+                    )
+                ),
+                block_builder.create_block_header("시간 선택"),
+                block_builder.create_actions(
+                    actions=(
+                        block_builder.create_timepicker(
+                            action_id="update_calendar-modal_event_start_time",
+                            init_time="09:00",
+                        ),
+                        block_builder.create_timepicker(
+                            action_id="update_calendar-modal_event_end_time",
+                            init_time="18:00",
+                        ),
+                    )
+                ),
+                block_builder.create_block_header("상세 내용"),
+                block_builder.create_input_text(
+                    action_id="update_calendar-modal_event_description", multiline=True
+                ),
+            ),
+        )
 
-    def __update_modal__(self, original_view, addr_blocks):
-        modal = original_view
-        self.modal_compose(view=original_view, blocks=addr_blocks)
+        return template_manager.apply_template(
+            view=self.get_base_view(event_type="event", creator_id=creator_id),
+            template=template,
+        )
 
-        return modal
+    def update_event_insert_modal(self, original_view, all_day):
+        # 업데이트할 템플릿을 가져옴
+        updated_template = template_manager.load_template_by_creator_id_with_name(
+            creator_id=original_view["private_metadata"], template_name="event"
+        )
 
-    def create_vacation_insert_modal(self):
+        # 가져온 view를 템플릿에 적용
+        updated_template.convert_view_to_template(view=original_view)
+
+        updated_template.set_template_line(
+            line="line_5_header_hidable",
+            block=None if all_day else block_builder.create_block_header("시간 선택"),
+        )
+        updated_template.set_template_line(
+            line="line_6_actions_hidable",
+            block=None
+            if all_day
+            else block_builder.create_actions(
+                actions=(
+                    block_builder.create_timepicker(
+                        action_id="update_calendar-modal_event_start_time",
+                        init_time="09:00",
+                    ),
+                    block_builder.create_timepicker(
+                        action_id="update_calendar-modal_event_end_time",
+                        init_time="18:00",
+                    ),
+                )
+            ),
+        )
+
+        return template_manager.apply_template(
+            self.get_base_view(
+                event_type="event", creator_id=original_view["private_metadata"]
+            ),
+            template=updated_template,
+        )
+
+    # 휴가 등록 모달창을 생성함
+    def create_vacation_insert_modal(self, creator_id):
         # view template을 설정
         template = template_manager.get_template_by_name("vacation")
 
@@ -61,7 +143,7 @@ class CalendarVacationModal:
             block=block_builder.create_actions(
                 actions=(
                     block_builder.create_user_select(
-                        "멤버 선택", "update_calendar-modal_member_select"
+                        "멤버 선택", "update_calendar-modal_vacation_member_select"
                     ),
                     block_builder.create_static_select(
                         placeholder_text="휴가 선택",
@@ -73,40 +155,53 @@ class CalendarVacationModal:
         )
 
         return template_manager.apply_template(
-            view=self.get_base_view(), template=template
+            view=self.get_base_view(event_type="vactaion", creator_id=creator_id),
+            template=template,
         )
 
-    def update_vacation_insert_modal(self, orginal_view, vacation_type):
+    def update_vacation_insert_modal(self, original_view, vacation_type):
         date_block = block_builder.create_actions(
             actions=(
                 block_builder.create_datepicker(
-                    "update_modal-modal_vacation_start_date"
+                    "update_calendar-modal_vacation_start_date"
                 ),
-                block_builder.create_datepicker("update_modal-modal_vacation_end_date"),
+                block_builder.create_datepicker(
+                    "update_calendar-modal_vacation_end_date"
+                ),
+            ),
+        )
+        single_date_block = block_builder.create_actions(
+            actions=(
+                block_builder.create_datepicker(
+                    "update_calendar-modal_vacation_start_date"
+                ),
             ),
         )
 
         time_block = block_builder.create_actions(
             actions=(
                 block_builder.create_timepicker(
-                    "update_modal-modal_vacation_start_time", "09:00"
+                    "update_calendar-modal_vacation_start_time", "09:00"
                 ),
                 block_builder.create_timepicker(
-                    "update_modal-modal_vacation_end_time", "18:00"
+                    "update_calendar-modal_vacation_end_time", "18:00"
                 ),
             )
         )
 
         vacation_dict = {
             "연차": [date_block, None],
-            "시간 연차": [date_block, time_block],
-            "반차": [date_block, time_block],
+            "시간 연차": [single_date_block, time_block],
+            "반차": [single_date_block, time_block],
         }
+
         # 업데이트할 템플릿을 가져옴
-        updated_template = template_manager.get_template_by_name("vacation")
+        updated_template = template_manager.load_template_by_creator_id_with_name(
+            creator_id=original_view["private_metadata"], template_name="vacation"
+        )
 
         # 가져온 view를 템플릿에 적용
-        updated_template.convert_view_to_template(view=orginal_view)
+        updated_template.convert_view_to_template(view=original_view)
         updated_template.set_template_line(
             line="line_3_header",
             block=block_builder.create_block_header("휴가 일정을 선택 해주세요 :smile:"),
@@ -119,18 +214,21 @@ class CalendarVacationModal:
         )
 
         return template_manager.apply_template(
-            self.get_base_view(), template=updated_template
+            self.get_base_view(
+                creator_id=original_view["private_metadata"], event_type="vacation"
+            ),
+            template=updated_template,
         )
 
     def set_view_component_properties(self, view, key, value):
         view[key] = {"type": "plain_text", "text": value}
 
-    def get_base_view(self):
+    def get_base_view(self, event_type, creator_id):
         view = {}
         view["blocks"] = []
         view["type"] = "modal"
-        view["callback_id"] = "modal_submit"
-        view["private_metadata"] = "None"
+        view["callback_id"] = f"update_calendar-modal_{event_type}_submit"
+        view["private_metadata"] = creator_id  # private_metadata를 통해 유저 아이디 확인
         self.set_view_component_properties(view=view, key="title", value="휴가 및 일정 선택")
         self.set_view_component_properties(view=view, key="submit", value="제출")
         self.set_view_component_properties(view=view, key="close", value="취소")

@@ -154,5 +154,48 @@ class CalendarBlockBuilder:
             "action_id": action_id,
         }
 
+    def create_input_text(self, action_id, multiline=False):
+        return {
+            "type": "input",
+            "element": {
+                "type": "plain_text_input",
+                "action_id": action_id,
+                "multiline": multiline,
+            },
+            "label": {"type": "plain_text", "text": "일정", "emoji": True},
+        }
+
+    def create_input_datepicker(self, label, action_id):
+        return {
+            "type": "input",
+            "element": {
+                "type": "datepicker",
+                "action_id": action_id,
+            },
+            "label": {"type": "plain_text", "text": label, "emoji": True},
+        }
+
+    def create_input_timepicker(self, label, action_id):
+        return {
+            "type": "input",
+            "element": {
+                "type": "timepicker",
+                "action_id": action_id,
+            },
+            "label": {"type": "plain_text", "text": label, "emoji": True},
+        }
+
+    def create_checkboxes(self, action_id, options):
+        option_list = []
+
+        for option_text in options:
+            option_list.append(self.create_option(text=option_text))
+
+        return {
+            "type": "checkboxes",
+            "options": option_list,
+            "action_id": action_id,
+        }
+
 
 block_builder = CalendarBlockBuilder()
