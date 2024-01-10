@@ -39,6 +39,7 @@ def __fetch_user_list__():
     # 유저 목록 갱신
     for member in response["members"]:
         if not (member["deleted"] or member["is_bot"] or member["id"] == "USLACKBOT"):
+            print(json_prettier(member))
             USER_LIST.append(
                 {
                     "user_id": member["id"],

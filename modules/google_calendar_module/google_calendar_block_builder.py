@@ -98,8 +98,10 @@ class CalendarBlockBuilder:
 
         return block_list
 
-    def create_datepicker(self, action_id):
-        return {"type": "datepicker", "action_id": action_id}
+    def create_datepicker(
+        self, action_id, init_date=datetime.now().strftime("%Y-%m-%d")
+    ):
+        return {"type": "datepicker", "initial_date": init_date, "action_id": action_id}
 
     def create_timepicker(self, action_id, init_time):
         return {"type": "timepicker", "initial_time": init_time, "action_id": action_id}
@@ -157,6 +159,7 @@ class CalendarBlockBuilder:
     def create_input_text(self, action_id, multiline=False):
         return {
             "type": "input",
+            "optional": True,
             "element": {
                 "type": "plain_text_input",
                 "action_id": action_id,

@@ -63,8 +63,7 @@ def modal_open(view, trigger_id):
     response = requests.post(
         "https://slack.com/api/views.open", headers=HEADER, json=data
     )
-    print(json_prettier(data["view"]))
-    print(json_prettier(response.json()))
+    print(f"modal_open")
 
     return response.text
 
@@ -89,8 +88,6 @@ def app_home_publish(user_id, view):
 
 def get_users_list():
     response = requests.get("https://slack.com/api/users.list", headers=HEADER)
-
-    print(json_prettier(response.json()))
     return response.json()
 
 

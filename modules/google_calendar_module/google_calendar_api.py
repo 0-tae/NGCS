@@ -56,13 +56,11 @@ class GoogleCalendarAPI:
     # event_request = Dict {summary, start, end, all-day}
     def insert_event(self, event_request):
         body = self.event_request_convert(event_request=event_request)
-
-        print("body:", body)
         events_result = (
             self.instance.events().insert(calendarId="primary", body=body).execute()
         )
 
-        print(events_result)
+        print(f"event_inserted: {body['summary']}")
         return events_result
 
     # event_request를 API 규격에 맞는 body로 변환
@@ -145,8 +143,7 @@ class GoogleCalendarAPI:
                 SEOUL_TIMEZONE
             )
 
-        print("TIMEMAX", time_max)
-        print("TIMEMIN", time_min)
+        print(f"TIME: {time_min} ~ {time_max}")
 
         events_result = (
             self.instance.events()
@@ -168,12 +165,11 @@ class GoogleCalendarAPI:
 
         result = list(map(lambda event: self.make_response(event), events))
 
-        print(result)
+        print([event["summary"] for event in result])
+
         return result
 
     def make_response(self, event):
-        print(event)
-
         response = {
             "summary": "(제목 없음)"
             if event.get("summary") == None

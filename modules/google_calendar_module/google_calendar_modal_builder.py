@@ -37,7 +37,7 @@ class CalendarVacationModal:
         template_manager.destroy_template_cache(creator_id)
 
     # 이름에 해당하는 모달창을 얻어옴
-    def get_modal(self, modal_name, creator_id):
+    def get_modal(self, modal_name, creator_id="default"):
         modal_creater = {
             "vacation": self.create_vacation_insert_modal,
             "event": self.create_event_insert_modal,
@@ -87,7 +87,9 @@ class CalendarVacationModal:
         )
 
         return template_manager.apply_template(
-            view=self.get_base_view(event_type="event", creator_id=creator_id),
+            view=self.get_base_view(
+                title="이벤트 및 일정 선택", event_type="event", creator_id=creator_id
+            ),
             template=template,
         )
 
@@ -123,8 +125,10 @@ class CalendarVacationModal:
         )
 
         return template_manager.apply_template(
-            self.get_base_view(
-                event_type="event", creator_id=original_view["private_metadata"]
+            view=self.get_base_view(
+                title="이벤트 및 일정 선택",
+                event_type="event",
+                creator_id=original_view["private_metadata"],
             ),
             template=updated_template,
         )
@@ -143,7 +147,8 @@ class CalendarVacationModal:
             block=block_builder.create_actions(
                 actions=(
                     block_builder.create_user_select(
-                        "멤버 선택", "update_calendar-modal_vacation_member_select"
+                        "멤버 선택(미선택 시, 본인)",
+                        "update_calendar-modal_vacation_member_select",
                     ),
                     block_builder.create_static_select(
                         placeholder_text="휴가 선택",
@@ -155,7 +160,9 @@ class CalendarVacationModal:
         )
 
         return template_manager.apply_template(
-            view=self.get_base_view(event_type="vactaion", creator_id=creator_id),
+            view=self.get_base_view(
+                title="휴가 및 일정 선택", event_type="vacation", creator_id=creator_id
+            ),
             template=template,
         )
 
@@ -215,7 +222,9 @@ class CalendarVacationModal:
 
         return template_manager.apply_template(
             self.get_base_view(
-                creator_id=original_view["private_metadata"], event_type="vacation"
+                title="휴가 및 일정 선택",
+                creator_id=original_view["private_metadata"],
+                event_type="vacation",
             ),
             template=updated_template,
         )
@@ -223,13 +232,13 @@ class CalendarVacationModal:
     def set_view_component_properties(self, view, key, value):
         view[key] = {"type": "plain_text", "text": value}
 
-    def get_base_view(self, event_type, creator_id):
+    def get_base_view(self, title, event_type, creator_id):
         view = {}
         view["blocks"] = []
         view["type"] = "modal"
         view["callback_id"] = f"update_calendar-modal_{event_type}_submit"
         view["private_metadata"] = creator_id  # private_metadata를 통해 유저 아이디 확인
-        self.set_view_component_properties(view=view, key="title", value="휴가 및 일정 선택")
+        self.set_view_component_properties(view=view, key="title", value=title)
         self.set_view_component_properties(view=view, key="submit", value="제출")
         self.set_view_component_properties(view=view, key="close", value="취소")
 
