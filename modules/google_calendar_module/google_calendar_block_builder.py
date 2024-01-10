@@ -122,6 +122,14 @@ class CalendarBlockBuilder:
             "action_id": action_id,
         }
 
+    def create_url_button(self, text, url, action_id):
+        return {
+            "type": "button",
+            "text": {"type": "plain_text", "text": text, "emoji": True},
+            "url": url,
+            "action_id": action_id,
+        }
+
     def create_option(self, text):
         return {
             "text": {"type": "plain_text", "text": text, "emoji": True},

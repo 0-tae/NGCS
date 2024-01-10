@@ -74,7 +74,7 @@ def modal_update(view, view_id, response_action):
     response = requests.post(
         "https://slack.com/api/views.update", headers=HEADER, json=data
     )
-    print(response.text)
+
     return response.text
 
 
@@ -83,7 +83,8 @@ def app_home_publish(user_id, view):
     response = requests.post(
         "https://slack.com/api/views.publish", headers=HEADER, json=data
     )
-    print("user_id:", user_id, ", OK: ", response.json()["ok"])
+
+    return response.text
 
 
 def get_users_list():

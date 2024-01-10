@@ -1,4 +1,4 @@
-from flask import Flask, request, make_response
+from flask import Flask, request, make_response, render_template, redirect
 from urllib import parse
 import json
 from datetime import datetime
@@ -19,8 +19,6 @@ def interactivity_controll():
     # request가 url encoded 되어 있기 때문에 url decoding 실행
     url_encoded_data = request.get_data(as_text=True)
     request_body = json.loads(parse.unquote(url_encoded_data).split("payload=")[-1])
-
-    print(json_prettier(request_body))
 
     # 핸들링에 필요한 액션 처리
     (action_service, action_type) = get_action_info(request_body=request_body)
@@ -44,6 +42,8 @@ def get_action_info(request_body):
 
     # 그 이외 action 일 때
     action_id = action[0].get("action_id").split("-")
+
+    print("action_id:", action_id)
     action_service = action_id[0]
     action_type = action_id[1]
 
@@ -317,6 +317,19 @@ def json_prettier(data):
     return json.dumps(data, indent=4, separators=(",", ":"), sort_keys=True)
 
 
+# 코드를 받아옴
+# 토큰을 생성
+# 창을 닫으라는 html을 return
+@app.route("/api/auth/callback/google")
+def handling_oauth2():
+    auth_code = request.args.get("code")
+
+    user_id = calendarAPI.get_temp_user()
+    calendarAPI.user_register(auth_code=auth_code, user_id=user_id)
+
+    return render_template("./google_calendar_moudle/ok.html")
+
+
 ACTION_DICT = {
     "read_calendar": {
         "refresh": calendar_refresh,
@@ -341,6 +354,7 @@ ACTION_DICT = {
         "modal_event_allday": allday_changed,
         "modal_event_submit": modal_event_submit,
     },
+    "access_calendar": {"register": None},
 }
 
 

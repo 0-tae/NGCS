@@ -12,11 +12,15 @@ class AppHomeComponent:
         slackAPI.app_home_publish(user_id=user_id, view=view)
 
     def init_app_home(self):
-        init_view = self.get_recently_event_view()
         user_list = sb_info.get_user_list()
-
         for user in user_list:
-            self.publish(view=init_view, user_id=user["user_id"])
+            user_id = user["user_id"]
+            if not calendarAPI.is_certificated(user_id=user_id):
+                auth_url = calendarAPI.get_auth_url(user_id)
+                init_view = self.get_non_user_view(auth_url)
+            else:
+                init_view = self.get_recently_event_view()
+            self.publish(view=init_view, user_id=user_id)
 
     def refresh_app_home(self, user_id):
         view = self.get_recently_event_view()
@@ -24,30 +28,59 @@ class AppHomeComponent:
 
     # 초기 app_home 구성
     def get_base_view(self):
-        if self.__base_view__ is None:
-            print("Get initial View")
-            initial_block_list = [
-                {
-                    "type": "section",
-                    "text": {"type": "mrkdwn", "text": "안녕하세요. 구글캘린더 봇입니다!:smile:"},
-                },
-                {
-                    "type": "actions",
-                    "elements": [
-                        block_builder.create_button(
-                            "새로 고침:arrows_counterclockwise:", "read_calendar-refresh"
-                        ),
-                        block_builder.create_button(
-                            "휴가 등록", "update_calendar-modal_open_vacation"
-                        ),
-                        block_builder.create_button(
-                            "일정 등록", "update_calendar-modal_open_event"
-                        ),
-                    ],
-                },
-            ]
+        print("Get initial View")
 
-            self.__base_view__ = {"type": "home", "blocks": initial_block_list}
+        initial_block_list = [
+            {
+                "type": "section",
+                "text": {"type": "mrkdwn", "text": "안녕하세요. 구글캘린더 봇입니다!:smile:"},
+            },
+            {
+                "type": "actions",
+                "elements": [
+                    block_builder.create_button(
+                        "새로 고침:arrows_counterclockwise:", "read_calendar-refresh"
+                    ),
+                    block_builder.create_button(
+                        "휴가 등록", "update_calendar-modal_open_vacation"
+                    ),
+                    block_builder.create_button(
+                        "일정 등록", "update_calendar-modal_open_event"
+                    ),
+                ],
+            },
+        ]
+
+        self.__base_view__ = {"type": "home", "blocks": initial_block_list}
+
+        return self.__base_view__
+
+    def get_non_user_view(self, auth_url):
+        non_user_block_list = [
+            {
+                "type": "section",
+                "text": {"type": "mrkdwn", "text": "안녕하세요. 구글캘린더 봇입니다! :smile:"},
+            },
+            {
+                "type": "section",
+                "text": {"type": "mrkdwn", "text": "먼저, *구글 캘린더를 Slack에 연동* 해주세요"},
+            },
+            {
+                "type": "actions",
+                "elements": [
+                    block_builder.create_url_button(
+                        text="구글 캘린더에 연동하기",
+                        url=auth_url,
+                        action_id="access_calendar-register",
+                    ),
+                ],
+            },
+        ]
+
+        self.__base_view__ = {
+            "type": "home",
+            "blocks": non_user_block_list,
+        }
 
         return self.__base_view__
 

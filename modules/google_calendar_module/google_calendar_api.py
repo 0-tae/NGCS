@@ -12,43 +12,105 @@ from googleapiclient.errors import HttpError
 # If modifying these scopes, delete the file token.json.
 SCOPES = ["https://www.googleapis.com/auth/calendar.events"]
 SEOUL_TIMEZONE = pytz.timezone("Asia/Seoul")
-PREFIX = "google_calendar_module"
+PREFIX = "google_calendar_module/tokens"
 
 
 class GoogleCalendarAPI:
-    creds = None
-    instance = None
+    __instance__ = None
+    __access_users__ = dict()
+    __temp_user__ = None
 
-    def __init__(self):
-        """Shows basic usage of the Google Calendar API.
-        Prints the start and name of the next 10 events on the user's calendar.
-        """
+    # 버튼 -> google 로그인 -> redirect 로 인한 user_id 정보 손실 방지 목적
+    # 이게 최선인가
 
-        # The file token.json stores the user's access and refresh tokens, and is
-        # created automatically when the authorization flow completes for the first
-        # time.
-        if os.path.exists(f"{PREFIX}/token.json"):
-            self.creds = Credentials.from_authorized_user_file(
-                f"{PREFIX}/token.json", SCOPES
+    def set_temp_user(self, user_id):
+        self.__temp_user__ = user_id
+
+    def get_temp_user(self):
+        return self.__temp_user__
+
+    def is_certificated(self, user_id):
+        return True if self.get_credentials(user_id=user_id) != None else False
+
+    # 유저가 한 번 인증하면 서버에 유저 이름으로 PREFIX를 가진 Token을 저장
+    def get_credentials(self, user_id):
+        current_creds = None
+
+        if os.path.exists(f"{PREFIX}/{user_id}-token.json"):
+            current_creds = Credentials.from_authorized_user_file(
+                f"{PREFIX}/{user_id}-token.json", SCOPES
             )
+        if current_creds == None:
+            return None
         # If there are no (valid) credentials available, let the user log in.
-        if not self.creds or not self.creds.valid:
-            if self.creds and self.creds.expired and self.creds.refresh_token:
-                self.creds.refresh(Request())
-            else:
-                flow = InstalledAppFlow.from_client_secrets_file(
-                    f"{PREFIX}/credentials.json", SCOPES
-                )
-                self.creds = flow.run_local_server(port=0)
+        if not current_creds.valid:
+            if current_creds and current_creds.expired and current_creds.refresh_token:
+                self.current_creds.refresh(Request())
             # Save the credentials for the next run
-            with open(f"{PREFIX}/token.json", "w") as token:
-                token.write(self.creds.to_json())
+            self.write_token(credential=current_creds, user_id=user_id)
 
-        self.instance = build("calendar", "v3", credentials=self.creds)
+        return current_creds
+
+    def write_token(self, credential, user_id):
+        with open(f"{PREFIX}/{user_id}-token.json", "w") as token:
+            token.write(credential.to_json())
+
+    def get_auth_url(self, user_id):
+        flow = InstalledAppFlow.from_client_secrets_file(
+            f"{PREFIX}/credentials.json",
+            SCOPES,
+            redirect_uri="https://38d0-221-158-214-203.ngrok-free.app/api/auth/callback/google",
+        )
+
+        # 유저 아이디 임시 저장
+        self.set_temp_user(user_id=user_id)
+
+        # 인증 페이지 url
+        # 로그인이 끝나면 클라이언트가 redirect_url에 인증정보와 함께 request
+        auth_url, _ = flow.authorization_url()
+
+        return auth_url
+
+    # credential에 따라 인스턴스를 교체
+    def set_instance(self, creds):
+        self.__instance__ = build("calendar", "v3", credentials=creds)
+
+    # auth를 통해 받은 code를 가져옴
+    # 유저 아이디를 입력 받으면, 유저에 대한 토큰을 발급
+    # 인스턴스를 해당 토큰이 적용된 creds로 교체
+
+    def get_flow(self):
+        flow = InstalledAppFlow.from_client_secrets_file(
+            f"{PREFIX}/credentials.json",
+            SCOPES,
+            redirect_uri="https://38d0-221-158-214-203.ngrok-free.app/api/auth/callback/google",
+        )
+
+        return flow
+
+    # 유저가 연동을 시도할 때 적용하는 함수
+    def user_register(self, auth_code, user_id):
+        # 현재 credential에 대한 flow를 가져옴
+        flow = self.get_flow()
+
+        # auth_code를 기반으로 토큰 정보를 Fetch하고, credential을 가져옴
+        flow.fetch_token(code_verifier=auth_code)
+        creds = flow.credentials
+
+        # 토큰을 저장
+        self.write_token(credential=creds, user_id=user_id)
+
+    # user_id를 기반으로 token 파일을 찾고 credential을 가져온 뒤, api_instance에 적용되는 credential을 교체함
+    # creds가 반환이 안되었다면... 아직까진 답이 없음
+    def set_api_user(self, user_id):
+        creds = self.get_credentials(user_id=user_id)
+
+        if creds == None:
+            raise ValueError("유저에 대한 토큰이 존재하지 않음")
+
+        self.set_instance(creds=creds)
 
     # 캘린더에서 일정을 삭제(shortcut), 우선순위 나중
-
-    # 캘린더에 일정이 등록 되면, 슬랙봇에 출력 -> app.py
 
     # 캘린더에서 일정 수정
 
@@ -57,7 +119,9 @@ class GoogleCalendarAPI:
     def insert_event(self, event_request):
         body = self.event_request_convert(event_request=event_request)
         events_result = (
-            self.instance.events().insert(calendarId="primary", body=body).execute()
+            self.____instance____.events()
+            .insert(calendarId="primary", body=body)
+            .execute()
         )
 
         print(f"event_inserted: {body['summary']}")
@@ -146,7 +210,7 @@ class GoogleCalendarAPI:
         print(f"TIME: {time_min} ~ {time_max}")
 
         events_result = (
-            self.instance.events()
+            self.__instance__.events()
             .list(
                 calendarId="primary",
                 timeMin=time_min.isoformat(),
