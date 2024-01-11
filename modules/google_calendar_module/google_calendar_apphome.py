@@ -5,26 +5,33 @@ from google_calendar_module.google_calendar_api import calendarAPI
 import copy
 
 
+HOST = "https://53eb-221-158-214-203.ngrok-free.app/link"
+
+
 class AppHomeComponent:
     __base_view__ = None
 
     def publish(self, view, user_id):
         slackAPI.app_home_publish(user_id=user_id, view=view)
 
+    def refresh_single_app_home(self, user_id):
+        view = None
+        if not calendarAPI.is_certificated(user_id=user_id):
+            view = self.get_non_user_view()
+        else:
+            view = self.get_recently_event_view(user_id)
+
+        self.publish(view=view, user_id=user_id)
+
     def init_app_home(self):
         user_list = sb_info.get_user_list()
         for user in user_list:
             user_id = user["user_id"]
             if not calendarAPI.is_certificated(user_id=user_id):
-                auth_url = calendarAPI.get_auth_url(user_id)
-                init_view = self.get_non_user_view(auth_url)
+                init_view = self.get_non_user_view()
             else:
-                init_view = self.get_recently_event_view()
+                init_view = self.get_recently_event_view(user_id)
             self.publish(view=init_view, user_id=user_id)
-
-    def refresh_app_home(self, user_id):
-        view = self.get_recently_event_view()
-        self.publish(view=view, user_id=user_id)
 
     # 초기 app_home 구성
     def get_base_view(self):
@@ -55,7 +62,7 @@ class AppHomeComponent:
 
         return self.__base_view__
 
-    def get_non_user_view(self, auth_url):
+    def get_non_user_view(self):
         non_user_block_list = [
             {
                 "type": "section",
@@ -70,8 +77,8 @@ class AppHomeComponent:
                 "elements": [
                     block_builder.create_url_button(
                         text="구글 캘린더에 연동하기",
-                        url=auth_url,
                         action_id="access_calendar-register",
+                        url=HOST,
                     ),
                 ],
             },
@@ -85,21 +92,21 @@ class AppHomeComponent:
         return self.__base_view__
 
     # 앱 홈에 띄울 연차, 휴가자 목록
-    def get_recently_event_view(self):
+    def get_recently_event_view(self, user_id):
         # deepcopy를 해야 하는 게 맞겠죠..?
         composed_view = copy.deepcopy(self.get_base_view())
         composed_view_block = composed_view["blocks"]
 
-        composed_view_block.extend(self.get_today_vacation_block())
-        composed_view_block.extend(self.get_today_common_event_block())
+        composed_view_block.extend(self.get_today_vacation_block(user_id))
+        composed_view_block.extend(self.get_today_common_event_block(user_id))
 
         return composed_view
 
-    def get_today_vacation_block(self):
+    def get_today_vacation_block(self, user_id):
         addr_blocks = []
         day_option = "today"
-        event_list = calendarAPI.get_vacation_list(day_option=day_option)
-        block_list = block_builder.make_block_list(
+        event_list = calendarAPI.get_vacation_list(user_id, day_option=day_option)
+        block_list = block_builder.make_event_block_list(
             event_list=event_list, action_type="today_vacation", day_option=day_option
         )
 
@@ -108,11 +115,11 @@ class AppHomeComponent:
 
         return addr_blocks
 
-    def get_today_common_event_block(self):
+    def get_today_common_event_block(self, user_id):
         addr_blocks = []
         day_option = "today"
-        event_list = calendarAPI.get_common_event_list(day_option=day_option)
-        block_list = block_builder.make_block_list(
+        event_list = calendarAPI.get_common_event_list(user_id, day_option=day_option)
+        block_list = block_builder.make_event_block_list(
             event_list=event_list, action_type="today_event", day_option=day_option
         )
 

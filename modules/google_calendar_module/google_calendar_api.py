@@ -2,7 +2,8 @@ from datetime import datetime
 import calendar as module_calendar
 import os.path
 import pytz
-
+import json
+from requests_oauthlib import OAuth2Session
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -13,15 +14,22 @@ from googleapiclient.errors import HttpError
 SCOPES = ["https://www.googleapis.com/auth/calendar.events"]
 SEOUL_TIMEZONE = pytz.timezone("Asia/Seoul")
 PREFIX = "google_calendar_module/tokens"
+HOST = "https://53eb-221-158-214-203.ngrok-free.app"
 
 
 class GoogleCalendarAPI:
     __instance__ = None
     __access_users__ = dict()
     __temp_user__ = None
+    __temp_state__ = None
 
-    # 버튼 -> google 로그인 -> redirect 로 인한 user_id 정보 손실 방지 목적
-    # 이게 최선인가
+    # 버튼 -> google 로그인 -> redirect 로 인한 user_id 정보 손실 방지 임시 방편
+
+    def set_temp_state(self, state):
+        self.__temp_state__ = state
+
+    def get_temp_state(self):
+        return self.__temp_state__
 
     def set_temp_user(self, user_id):
         self.__temp_user__ = user_id
@@ -40,12 +48,13 @@ class GoogleCalendarAPI:
             current_creds = Credentials.from_authorized_user_file(
                 f"{PREFIX}/{user_id}-token.json", SCOPES
             )
+
         if current_creds == None:
             return None
         # If there are no (valid) credentials available, let the user log in.
         if not current_creds.valid:
             if current_creds and current_creds.expired and current_creds.refresh_token:
-                self.current_creds.refresh(Request())
+                current_creds.refresh(Request())
             # Save the credentials for the next run
             self.write_token(credential=current_creds, user_id=user_id)
 
@@ -55,50 +64,76 @@ class GoogleCalendarAPI:
         with open(f"{PREFIX}/{user_id}-token.json", "w") as token:
             token.write(credential.to_json())
 
-    def get_auth_url(self, user_id):
-        flow = InstalledAppFlow.from_client_secrets_file(
-            f"{PREFIX}/credentials.json",
-            SCOPES,
-            redirect_uri="https://38d0-221-158-214-203.ngrok-free.app/api/auth/callback/google",
+    def get_redirect_url(self):
+        return "https://53eb-221-158-214-203.ngrok-free.app/api/auth/callback/google"
+
+    def get_auth_url(self):
+        with open(f"{PREFIX}/credentials.json", "r") as file:
+            credentials = json.load(file)["web"]
+
+        client_config = {
+            "token_url": credentials["token_uri"],
+            "client_secret": credentials["client_secret"],
+            "auth_uri": credentials["auth_uri"],
+            "client_id": credentials["client_id"],
+        }
+
+        oauth2_session = OAuth2Session(
+            client_id=client_config["client_id"],
+            scope=SCOPES,
+            redirect_uri=self.get_redirect_url(),
+        )
+
+        authorization_url, state = oauth2_session.authorization_url(
+            client_config["auth_uri"],
+            # offline for refresh token
+            # force to always make user click authorize
+            access_type="offline",
+            prompt="select_account",
         )
 
         # 유저 아이디 임시 저장
-        self.set_temp_user(user_id=user_id)
+        self.set_temp_state(state)
+        print("request state:", state)
+        return authorization_url
 
-        # 인증 페이지 url
-        # 로그인이 끝나면 클라이언트가 redirect_url에 인증정보와 함께 request
-        auth_url, _ = flow.authorization_url()
+    def user_register(self, auth_response_url, user_id):
+        with open(f"{PREFIX}/credentials.json", "r") as file:
+            credentials = json.load(file)["web"]
 
-        return auth_url
+        client_config = {
+            "token_url": credentials["token_uri"],
+            "client_secret": credentials["client_secret"],
+            "auth_uri": credentials["auth_uri"],
+            "client_id": credentials["client_id"],
+        }
+
+        google = OAuth2Session(
+            client_config["client_id"],
+            redirect_uri=self.get_redirect_url(),
+            state=self.get_temp_state(),
+        )
+
+        token = google.fetch_token(
+            client_config["token_url"],
+            client_secret=client_config["client_secret"],
+            authorization_response=auth_response_url,
+        )
+
+        token_dict = dict()
+
+        token_dict.update({"client_id": client_config["client_id"]})
+        token_dict.update({"client_secret": client_config["client_secret"]})
+
+        for key, value in token.items():
+            token_dict.update({key: value})
+
+        with open(f"{PREFIX}/{user_id}-token.json", "w") as new_token:
+            new_token.write(json.dumps(token_dict))
 
     # credential에 따라 인스턴스를 교체
     def set_instance(self, creds):
         self.__instance__ = build("calendar", "v3", credentials=creds)
-
-    # auth를 통해 받은 code를 가져옴
-    # 유저 아이디를 입력 받으면, 유저에 대한 토큰을 발급
-    # 인스턴스를 해당 토큰이 적용된 creds로 교체
-
-    def get_flow(self):
-        flow = InstalledAppFlow.from_client_secrets_file(
-            f"{PREFIX}/credentials.json",
-            SCOPES,
-            redirect_uri="https://38d0-221-158-214-203.ngrok-free.app/api/auth/callback/google",
-        )
-
-        return flow
-
-    # 유저가 연동을 시도할 때 적용하는 함수
-    def user_register(self, auth_code, user_id):
-        # 현재 credential에 대한 flow를 가져옴
-        flow = self.get_flow()
-
-        # auth_code를 기반으로 토큰 정보를 Fetch하고, credential을 가져옴
-        flow.fetch_token(code_verifier=auth_code)
-        creds = flow.credentials
-
-        # 토큰을 저장
-        self.write_token(credential=creds, user_id=user_id)
 
     # user_id를 기반으로 token 파일을 찾고 credential을 가져온 뒤, api_instance에 적용되는 credential을 교체함
     # creds가 반환이 안되었다면... 아직까진 답이 없음
@@ -119,9 +154,7 @@ class GoogleCalendarAPI:
     def insert_event(self, event_request):
         body = self.event_request_convert(event_request=event_request)
         events_result = (
-            self.____instance____.events()
-            .insert(calendarId="primary", body=body)
-            .execute()
+            self.__instance__.events().insert(calendarId="primary", body=body).execute()
         )
 
         print(f"event_inserted: {body['summary']}")
@@ -165,11 +198,11 @@ class GoogleCalendarAPI:
     # 캘린더에서 휴가 받아오기
     # 일정에서 휴가만 필터링 하는 방식
     # option : 일별, 월별
-    def get_vacation_list(self, day_option):
+    def get_vacation_list(self, user_id, day_option="today"):
         result = list(
             filter(
                 lambda e: self.is_vacation(e["summary"]),
-                self.get_event_list(day_option=day_option),
+                self.get_event_list(user_id, day_option=day_option),
             )
         )
         return result
@@ -177,18 +210,21 @@ class GoogleCalendarAPI:
     # 캘린더에서 일반 일정 받아오기
     # 일정에서 휴가만 필터링 하는 방식
     # option : 일별, 월별
-    def get_common_event_list(self, day_option):
+    def get_common_event_list(self, user_id, day_option="today"):
         result = list(
             filter(
                 lambda e: not self.is_vacation(e["summary"]),
-                self.get_event_list(day_option=day_option),
+                self.get_event_list(user_id, day_option=day_option),
             )
         )
         return result
 
     # 캘린더에서 일정 받아오기
     # option : 일별, 월별
-    def get_event_list(self, day_option):
+    def get_event_list(self, user_id, day_option="today"):
+        # api 사용 유저 변경
+        self.set_api_user(user_id)
+
         # "month" 옵션일 때, 해당 월의 스케줄을 가져옴
         # "week" 옵션일 때,  당월에 해당하는 한 주차 스케줄을 가져옴 (좀 복잡함)
         # "today" 옵션일 때, 금일의 스케줄을 가져옴(default)
@@ -223,13 +259,11 @@ class GoogleCalendarAPI:
 
         events = events_result.get("items", [])
 
-        # TODO: 아무런 일정이 없을 때 미구현
+        # 아무런 일정이 없을 경우 비어있는 리스트 반환
         if not events:
-            return self.make_response(None)
+            return list()
 
         result = list(map(lambda event: self.make_response(event), events))
-
-        print([event["summary"] for event in result])
 
         return result
 

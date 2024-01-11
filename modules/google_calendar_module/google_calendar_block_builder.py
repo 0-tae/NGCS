@@ -73,7 +73,7 @@ class CalendarBlockBuilder:
         return block
 
     # TODO: day_option(오늘, 특정 일자) 구현
-    def make_block_list(self, event_list, action_type, day_option):
+    def make_event_block_list(self, event_list, action_type, day_option):
         action_type_dict = {
             "today_vacation": {
                 "section_text": self.create_block_section_vacation,
@@ -85,7 +85,7 @@ class CalendarBlockBuilder:
             },
         }
 
-        block_list = []
+        block_list = list()
         action = action_type_dict[action_type]
 
         block_header = action.get("block_header")
@@ -207,6 +207,16 @@ class CalendarBlockBuilder:
             "options": option_list,
             "action_id": action_id,
         }
+
+    def compose(self, blocks):
+        block_list = list()
+        for block in blocks:
+            if type(block) == list:
+                block_list.extend(block)
+            else:
+                block_list.append(block)
+
+        return block_list
 
 
 block_builder = CalendarBlockBuilder()

@@ -32,6 +32,14 @@ class CalendarVacationModal:
                 "line_8_actions",
             ),
         )
+        template_manager.create_view_template(
+            "setting",
+            template_options=(
+                "line_1_header",  # 누구 에게 전파 하는지?
+                "line_2_actions",  # 채널, 멤버 선택 라디오 버튼
+                "line_3_actions",  # static_select(event), member_select
+            ),
+        )
 
     def after_submit(self, creator_id):
         template_manager.destroy_template_cache(creator_id)
@@ -41,9 +49,16 @@ class CalendarVacationModal:
         modal_creater = {
             "vacation": self.create_vacation_insert_modal,
             "event": self.create_event_insert_modal,
+            "spread": self.create_spread_modal,
         }
 
         return modal_creater[modal_name](creator_id)
+
+    def create_setting_modal(self, creator_id):
+        template = template_manager.get_template_by_name("spread")
+        template.set_template_all(
+            blocks=(block_builder.create_block_header("누구에게 전파 할까요?"))
+        )
 
     # 일정 등록 모달창을 생성함
     def create_event_insert_modal(self, creator_id):

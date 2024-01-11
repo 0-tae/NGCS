@@ -115,7 +115,8 @@ class ViewTemplateObjectManager:
 
     # 유저 아이디를 통해 템플릿 캐시를 삭제(submit 시)
     def destroy_template_cache(self, creator_id) -> ViewTemplateObject:
-        self.__template_cache__.pop(creator_id)
+        if self.get_template_cache(creator_id=creator_id) != None:
+            self.__template_cache__.pop(creator_id)
 
     # 템플릿을 템플릿 딕셔너리에 등록
     def set_template_dict(self, template: ViewTemplateObject):

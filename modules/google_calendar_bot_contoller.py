@@ -1,4 +1,4 @@
-from flask import Flask, request, make_response, render_template, redirect
+from flask import Flask, request, make_response, render_template, redirect, session
 from urllib import parse
 import json
 from datetime import datetime
@@ -9,6 +9,10 @@ from google_calendar_module.google_calendar_api import calendarAPI
 from google_calendar_module.google_calendar_block_builder import block_builder
 from google_calendar_module.google_calendar_modal_builder import modal_builder
 from google_calendar_module.google_calendar_apphome import apphome
+from google_calendar_module.google_calendar_reminder import reminder
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
 
 app = Flask(__name__)
 
@@ -19,6 +23,7 @@ def interactivity_controll():
     # request가 url encoded 되어 있기 때문에 url decoding 실행
     url_encoded_data = request.get_data(as_text=True)
     request_body = json.loads(parse.unquote(url_encoded_data).split("payload=")[-1])
+    __temp_request_body__ = request_body
 
     # 핸들링에 필요한 액션 처리
     (action_service, action_type) = get_action_info(request_body=request_body)
@@ -155,6 +160,7 @@ def modal_vacation_submit(request_body, action_type):
 
     # 캘린더에 업데이트
     calendarAPI.insert_event(event_request=request)
+    # event_spread.spread()
 
     return {"response_action": "clear"}, 200
 
@@ -299,7 +305,7 @@ def calendar_refresh(request_body, action_name):
     # Required Argument
     user_id = request_body["user"]["id"]
 
-    apphome.refresh_app_home(user_id=user_id)
+    apphome.refresh_single_app_home(user_id=user_id)
 
     return "ok", 200
 
@@ -320,14 +326,28 @@ def json_prettier(data):
 # 코드를 받아옴
 # 토큰을 생성
 # 창을 닫으라는 html을 return
-@app.route("/api/auth/callback/google")
+@app.route("/api/auth/callback/google", methods=["GET"])
 def handling_oauth2():
-    auth_code = request.args.get("code")
-
+    response_url = request.url
+    print("response state:", request.args.get("state"))
     user_id = calendarAPI.get_temp_user()
-    calendarAPI.user_register(auth_code=auth_code, user_id=user_id)
+    calendarAPI.user_register(
+        auth_response_url=response_url.replace("http", "https"), user_id=user_id
+    )
 
-    return render_template("./google_calendar_moudle/ok.html")
+    apphome.refresh_single_app_home(user_id=user_id)
+    return render_template("google_calendar_module/ok.html")
+
+
+@app.route("/link", methods=["GET"])
+def redirect_auth_url():
+    auth_url = calendarAPI.get_auth_url()
+    return redirect(auth_url)
+
+
+def link(request_body, action_name):
+    calendarAPI.set_temp_user(user_id=request_body["user"]["id"])
+    return "ok", 200
 
 
 ACTION_DICT = {
@@ -354,24 +374,63 @@ ACTION_DICT = {
         "modal_event_allday": allday_changed,
         "modal_event_submit": modal_event_submit,
     },
-    "access_calendar": {"register": None},
+    "access_calendar": {"register": link},
 }
 
 
-# # 현재 쓰고있지 않음
-# def calendar_message_handling(action_type, channel_id):
-#     action_func_dict = {
-#         "today_vacation": calendarAPI.get_vacation_list,
-#         "today_event": calendarAPI.get_common_event_list,
-#     }
+# TODO: 이건 어디에 구현해야 할까..
+def today_events_post_all():
+    users = slackInfo.get_user_list()
 
-#     event_list = action_func_dict[action_type](option="today")
+    for user in users:
+        user_id = user["user_id"]
+        user_name = get_user_name(user_id)
+        common_event_list = calendarAPI.get_common_event_list(user_id=user_id)
+        vacation_list = calendarAPI.get_vacation_list(user_id=user_id)
 
-#     blocks = block_builder.make_block_list(
-#         event_list=event_list, action_type=action_type, day_option="today"
-#     )
-#     return slackAPI.post_message(channel_id, f"read_calendar-{action_type}", blocks)
+        composed_blocks = list()
 
+        hello_text = f"{user_name}님 오늘의 일정 알려 드립니다.:blush:"
+
+        hello_block = block_builder.create_single_block_section(hello_text)
+        date_block = block_builder.create_block_header(
+            f"{datetime.now().year}년 {datetime.now().month}월 {datetime.now().day}일"
+        )
+        vacation_blocks = block_builder.make_event_block_list(
+            event_list=vacation_list, action_type="today_vacation", day_option="today"
+        )
+        commmon_event_blocks = block_builder.make_event_block_list(
+            event_list=common_event_list, action_type="today_event", day_option="today"
+        )
+
+        composed_blocks = block_builder.compose(
+            blocks=(
+                block_builder.create_single_block_section(hello_text),
+                block_builder.create_block_header(
+                    f"{datetime.now().year}년 {datetime.now().month}월 {datetime.now().day}일"
+                ),
+                block_builder.make_event_block_list(
+                    event_list=vacation_list,
+                    action_type="today_vacation",
+                    day_option="today",
+                ),
+                block_builder.make_event_block_list(
+                    event_list=common_event_list,
+                    action_type="today_event",
+                    day_option="today",
+                ),
+            )
+        )
+
+        slackAPI.post_message(
+            channel_id=user_id, text=hello_text, blocks=composed_blocks
+        )
+
+    return
+
+
+reminder.add_cron_scheduler("alert_event", today_events_post_all, hour=15, minute=40)
+reminder.execute()
 
 # 알림
 # 무엇을 알림?
