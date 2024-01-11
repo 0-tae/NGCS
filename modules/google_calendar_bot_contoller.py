@@ -350,6 +350,34 @@ def link(request_body, action_name):
     return "ok", 200
 
 
+# 일정이 선택되면 해당 일정의 이벤트 리스트를 가져옴
+def spread_date_selected():
+    return "ok", 200
+
+
+# 타입이 선택되면 멤버 혹은 채널에 대한 inputbox가 나옴
+def spread_type_selected(request_body, action_name):
+    print(json_prettier(request_body))
+
+    view = UTFToKoreanJSON(request_body["view"])
+    view_id = view["id"]
+
+    occured_action = request_body["actions"][0]
+    action_id = occured_action["action_id"]
+    block_id = occured_action["block_id"]
+
+    selected_option = view["state"]["values"][block_id][action_id]["selected_option"]
+
+    target_type = selected_option["value"]
+
+    updated_view = modal_builder.update_spread_modal(
+        original_view=view, selected_type=target_type
+    )
+    slackAPI.modal_update(view=updated_view, view_id=view_id, response_action="update")
+
+    return "ok", 200
+
+
 ACTION_DICT = {
     "read_calendar": {
         "refresh": calendar_refresh,
@@ -375,6 +403,14 @@ ACTION_DICT = {
         "modal_event_submit": modal_event_submit,
     },
     "access_calendar": {"register": link},
+    "spread_calendar": {
+        "modal_open_spread": modal_open,
+        "modal_spread_date_select": spread_date_selected,
+        "modal_spread_event_select": None,
+        "modal_spread_type_select": spread_type_selected,
+        "modal_spread_users_select": None,
+        "modal_spread_channels_select": None,
+    },
 }
 
 

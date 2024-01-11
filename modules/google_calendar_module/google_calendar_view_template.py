@@ -138,7 +138,12 @@ class ViewTemplateObjectManager:
 
     # 템플릿 객체를 복사해옴
     def get_template_by_name(self, template_name) -> ViewTemplateObject:
-        return copy.deepcopy(self.__template_dict__.get(template_name))
+        loaded_template = self.__template_dict__.get(template_name)
+
+        if not loaded_template:
+            raise ValueError(f"템플릿이 존재하지 않습니다. [{template_name}]")
+
+        return copy.deepcopy(loaded_template)
 
     def create_view_template(self, template_name, template_options):
         template = ViewTemplateObject(template_name, dict())

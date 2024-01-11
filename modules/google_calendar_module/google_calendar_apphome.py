@@ -54,6 +54,9 @@ class AppHomeComponent:
                     block_builder.create_button(
                         "일정 등록", "update_calendar-modal_open_event"
                     ),
+                    block_builder.create_button(
+                        "내 일정 전파하기", "spread_calendar-modal_open_spread"
+                    ),
                 ],
             },
         ]

@@ -164,6 +164,19 @@ class CalendarBlockBuilder:
             "action_id": action_id,
         }
 
+    def create_channel_select(self, placehloder_text, action_id):
+        return (
+            {
+                "type": "channels_select",
+                "placeholder": {
+                    "type": "plain_text",
+                    "text": placehloder_text,
+                    "emoji": True,
+                },
+                "action_id": action_id,
+            },
+        )
+
     def create_input_text(self, action_id, multiline=False):
         return {
             "type": "input",
@@ -196,6 +209,51 @@ class CalendarBlockBuilder:
             "label": {"type": "plain_text", "text": label, "emoji": True},
         }
 
+    def create_input_channel_select(self, label, placeholder_text, action_id):
+        return {
+            "type": "input",
+            "element": {
+                "type": "channels_select",
+                "placeholder": {
+                    "type": "plain_text",
+                    "text": placeholder_text,
+                    "emoji": True,
+                },
+                "action_id": action_id,
+            },
+            "label": {"type": "plain_text", "text": label, "emoji": True},
+        }
+
+    def create_input_multi_users_select(self, label, placeholder_text, action_id):
+        return {
+            "type": "input",
+            "element": {
+                "type": "multi_users_select",
+                "placeholder": {
+                    "type": "plain_text",
+                    "text": placeholder_text,
+                    "emoji": True,
+                },
+                "action_id": action_id,
+            },
+            "label": {"type": "plain_text", "text": label, "emoji": True},
+        }
+
+    def create_input_user_select(self, label, placeholder_text, action_id):
+        return {
+            "type": "input",
+            "element": {
+                "type": "users_select",
+                "placeholder": {
+                    "type": "plain_text",
+                    "text": placeholder_text,
+                    "emoji": True,
+                },
+                "action_id": action_id,
+            },
+            "label": {"type": "plain_text", "text": label, "emoji": True},
+        }
+
     def create_checkboxes(self, action_id, options):
         option_list = []
 
@@ -204,6 +262,18 @@ class CalendarBlockBuilder:
 
         return {
             "type": "checkboxes",
+            "options": option_list,
+            "action_id": action_id,
+        }
+
+    def create_radio_buttons(self, action_id, options):
+        option_list = []
+
+        for option_text in options:
+            option_list.append(self.create_option(text=option_text))
+
+        return {
+            "type": "radio_buttons",
             "options": option_list,
             "action_id": action_id,
         }
