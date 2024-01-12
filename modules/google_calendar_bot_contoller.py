@@ -10,9 +10,10 @@ from google_calendar_module.google_calendar_block_builder import block_builder
 from google_calendar_module.google_calendar_modal_builder import modal_builder
 from google_calendar_module.google_calendar_apphome import apphome
 from google_calendar_module.google_calendar_reminder import reminder
+from google_calendar_module.service.event_spread import spread_service
 import logging
 
-logging.basicConfig(level=logging.DEBUG)
+# logging.basicConfig(level=logging.DEBUG)
 
 app = Flask(__name__)
 
@@ -26,13 +27,18 @@ def interactivity_controll():
     __temp_request_body__ = request_body
 
     # 핸들링에 필요한 액션 처리
-    (action_service, action_type) = get_action_info(request_body=request_body)
+    (action_service, action_type, callback_id) = get_action_info(
+        request_body=request_body
+    )
+
+    print(action_service, action_type, callback_id)
 
     handling_func = ACTION_DICT[action_service][action_type]
+
     if handling_func == None:
         return "this action have no function", 200
 
-    return handling_func(request_body, action_type)
+    return handling_func(request_body, action_type, callback_id)
 
 
 def get_action_info(request_body):
@@ -43,7 +49,7 @@ def get_action_info(request_body):
         callback_id = request_body["view"]["callback_id"].split("-")
         action_service = callback_id[0]
         action_type = callback_id[1]
-        return (action_service, action_type)
+        return (action_service, action_type, callback_id)
 
     # 그 이외 action 일 때
     action_id = action[0].get("action_id").split("-")
@@ -52,11 +58,13 @@ def get_action_info(request_body):
     action_service = action_id[0]
     action_type = action_id[1]
 
-    return (action_service, action_type)
+    return (action_service, action_type, None)
 
 
 # Get을 쓰면 없는거 불러올 때 오류는 안난다
 # 각 액션에 대한 response value를 가져옴
+
+
 def get_value_from_action(action_dict):
     action_type_dict = {
         "timepicker": ["selected_time"],
@@ -296,7 +304,10 @@ def modal_open(request_body, action_name):
     modal_type = action_name.split("_")[-1]  # "modal_open_vacation" -> vacation
 
     modal_view = modal_builder.get_modal(modal_name=f"{modal_type}", creator_id=user_id)
-    slackAPI.modal_open(view=modal_view, trigger_id=trigger_id)
+    response = slackAPI.modal_open(view=modal_view, trigger_id=trigger_id)
+
+    if modal_type == "spread":
+        spread_service.modal_init_spread(view=response["view"], user_id=user_id)
 
     return "ok", 200
 
@@ -308,19 +319,6 @@ def calendar_refresh(request_body, action_name):
     apphome.refresh_single_app_home(user_id=user_id)
 
     return "ok", 200
-
-
-def UTFToKorean(text):
-    return text.encode("UTF-8").decode("UTF-8").replace("+", " ")
-
-
-def UTFToKoreanJSON(data):
-    converted_data = json.dumps(data).replace("+", " ")
-    return json.loads(converted_data)
-
-
-def json_prettier(data):
-    return json.dumps(data, indent=4, separators=(",", ":"), sort_keys=True)
 
 
 # 코드를 받아옴
@@ -339,43 +337,31 @@ def handling_oauth2():
     return render_template("google_calendar_module/ok.html")
 
 
+# 연동하기 버튼에 작성된 URL
+# auth_url 생성하여 리다이렉트
 @app.route("/link", methods=["GET"])
 def redirect_auth_url():
     auth_url = calendarAPI.get_auth_url()
     return redirect(auth_url)
 
 
+# 링크가 클릭된 이후 버튼 action이 실행된다.
 def link(request_body, action_name):
     calendarAPI.set_temp_user(user_id=request_body["user"]["id"])
     return "ok", 200
 
 
-# 일정이 선택되면 해당 일정의 이벤트 리스트를 가져옴
-def spread_date_selected():
-    return "ok", 200
+def UTFToKorean(text):
+    return text.encode("UTF-8").decode("UTF-8").replace("+", " ")
 
 
-# 타입이 선택되면 멤버 혹은 채널에 대한 inputbox가 나옴
-def spread_type_selected(request_body, action_name):
-    print(json_prettier(request_body))
+def UTFToKoreanJSON(data):
+    converted_data = json.dumps(data).replace("+", " ")
+    return json.loads(converted_data)
 
-    view = UTFToKoreanJSON(request_body["view"])
-    view_id = view["id"]
 
-    occured_action = request_body["actions"][0]
-    action_id = occured_action["action_id"]
-    block_id = occured_action["block_id"]
-
-    selected_option = view["state"]["values"][block_id][action_id]["selected_option"]
-
-    target_type = selected_option["value"]
-
-    updated_view = modal_builder.update_spread_modal(
-        original_view=view, selected_type=target_type
-    )
-    slackAPI.modal_update(view=updated_view, view_id=view_id, response_action="update")
-
-    return "ok", 200
+def json_prettier(data):
+    return json.dumps(data, indent=4, separators=(",", ":"), sort_keys=True)
 
 
 ACTION_DICT = {
@@ -393,21 +379,22 @@ ACTION_DICT = {
         "modal_vacation_start_date": None,
         "modal_vacation_end_date": None,
         "modal_vacation_type_select": vacation_type_selected,
-        "modal_vacation_submit": modal_vacation_submit,
+        "modal_submit_vacation": modal_vacation_submit,
         "modal_event_summary": None,
         "modal_event_date": None,
         "modal_event_start_time": None,
         "modal_event_end_time": None,
         "modal_event_description": None,
         "modal_event_allday": allday_changed,
-        "modal_event_submit": modal_event_submit,
+        "modal_submit_event": modal_event_submit,
     },
     "access_calendar": {"register": link},
     "spread_calendar": {
         "modal_open_spread": modal_open,
-        "modal_spread_date_select": spread_date_selected,
+        "modal_submit_spread": spread_service.modal_spread_submit,
+        "modal_spread_date_select": spread_service.spread_date_selected,
         "modal_spread_event_select": None,
-        "modal_spread_type_select": spread_type_selected,
+        "modal_spread_type_select": spread_service.spread_type_selected,
         "modal_spread_users_select": None,
         "modal_spread_channels_select": None,
     },
@@ -465,7 +452,7 @@ def today_events_post_all():
     return
 
 
-reminder.add_cron_scheduler("alert_event", today_events_post_all, hour=15, minute=40)
+reminder.add_cron_scheduler("alert_event", today_events_post_all, hour=9, minute=50)
 reminder.execute()
 
 # 알림

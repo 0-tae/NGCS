@@ -50,7 +50,7 @@ class CalendarBlockBuilder:
 
         # ex) 최용태 님 오늘 09:00~12:00 오전 반차
         # ex) 최용태 님 오늘 연차
-        return f"*{name}* 님 {event_summary}"
+        return f"- *{name}* 님 {event_summary}"
 
     def create_block_section_common_event(self, event):
         event_summary = event["summary"]
@@ -93,7 +93,7 @@ class CalendarBlockBuilder:
 
         for event in event_list:
             section_text = action.get("section_text")(event=event)
-            block = self.create_single_block_section(text=section_text)
+            block = self.create_single_block_section(text=f"- {section_text}")
             block_list.append(block)
 
         return block_list
@@ -114,11 +114,11 @@ class CalendarBlockBuilder:
 
         return {"type": "actions", "elements": elements}
 
-    def create_button(self, text, action_id):
+    def create_button(self, text, action_id, value=None):
         return {
             "type": "button",
             "text": {"type": "plain_text", "text": text, "emoji": True},
-            "value": action_id,
+            "value": action_id if not value else value,
             "action_id": action_id,
         }
 

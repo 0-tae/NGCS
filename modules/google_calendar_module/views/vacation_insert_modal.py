@@ -33,16 +33,6 @@ class CalendarVacationModal:
                 "line_8_actions",
             ),
         )
-        template_manager.create_view_template(
-            "spread",
-            template_options=(
-                "line_1_header",  # 어떤 이벤트를 전파하는지?
-                "line_2_actions",  # date_picker, static_select(event)
-                "line_3_header",  # 누구에게 전파하는지?
-                "line_4_actions",  # radio buttons(멤버, 채널)
-                "line_5_actions_changable",  # static_select(event) or member_select
-            ),
-        )
 
     def after_submit(self, creator_id):
         template_manager.destroy_template_cache(creator_id)
@@ -57,83 +47,18 @@ class CalendarVacationModal:
 
         return modal_creater[modal_name](creator_id)
 
-    def create_spread_modal(self, creator_id):
-        template = template_manager.get_template_by_name("spread")
-        template.set_template_all(
-            blocks=(
-                block_builder.create_block_header("어떤 일정을 전파 할까요?"),
-                block_builder.create_actions(
-                    actions=(
-                        block_builder.create_datepicker(
-                            action_id="spread_calendar-modal_spread_date_select",
-                            init_date=datetime.now().strftime("%Y-%m-%d"),
-                        ),
-                        block_builder.create_static_select(
-                            options=(
-                                "------------여러가지 이벤트들(default: 오늘 이벤트 목록)-----------"
-                            ),
-                            placeholder_text="일정 선택",
-                            action_id="spread_calendar-modal_spread_event_select",
-                        ),
-                    )
-                ),
-                block_builder.create_block_header("누구에게 전파 할까요?"),
-                block_builder.create_actions(
-                    actions=(
-                        block_builder.create_radio_buttons(
-                            options=("멤버", "채널"),
-                            action_id="spread_calendar-modal_spread_type_select",
-                        ),
-                    )
-                ),
-                block_builder.create_input_multi_users_select(
-                    label="멤버에게 전파",  # line_5_actions_changable default
-                    placeholder_text="멤버 선택",
-                    action_id="spread_calendar-modal_spread_users_select",
-                ),
-            )
-        )
-
-        return template_manager.apply_template(
-            view=self.get_base_view(
-                title="일정 전파하기", event_type="spread", creator_id=creator_id
-            ),
-            template=template,
-        )
-
-    def update_spread_modal(self, original_view, selected_type):
-        # 업데이트할 템플릿을 가져옴
+    def update_modal_for_set_callback_id(
+        self, original_view, modal_name, title, new_callback_id
+    ):
         updated_template = template_manager.load_template_by_creator_id_with_name(
-            creator_id=original_view["private_metadata"], template_name="spread"
+            creator_id=original_view["private_metadata"], template_name=modal_name
         )
-
-        # 가져온 view를 템플릿에 적용
         updated_template.convert_view_to_template(view=original_view)
 
-        # type이 멤버일 경우 해당 블록을 적용
-        member_input = block_builder.create_input_multi_users_select(
-            label="멤버에게 전파",  # line_5_actions_changable default
-            placeholder_text="멤버 선택",
-            action_id="spread_calendar-modal_spread_users_select",
-        )
-
-        # type이 채널일 경우 해당 블록을 적용
-        channel_input = block_builder.create_input_channel_select(
-            label="채널에 전파",  # line_5_actions_changable default
-            placeholder_text="채널 선택",
-            action_id="spread_calendar-modal_spread_channels_select",
-        )
-
-        # 템플릿 라인 업데이트
-        updated_template.set_template_line(
-            line="line_5_actions_changable",
-            block=member_input if selected_type == "멤버" else channel_input,
-        )
-
         return template_manager.apply_template(
             view=self.get_base_view(
-                title="이벤트 및 일정 선택",
-                event_type="spread",
+                title="일정 전파하기",
+                callback_id=title,
                 creator_id=original_view["private_metadata"],
             ),
             template=updated_template,
@@ -182,7 +107,9 @@ class CalendarVacationModal:
 
         return template_manager.apply_template(
             view=self.get_base_view(
-                title="이벤트 및 일정 선택", event_type="event", creator_id=creator_id
+                title="이벤트 및 일정 선택",
+                callback_id="update_calendar-modal_submit_event",
+                creator_id=creator_id,
             ),
             template=template,
         )
@@ -221,7 +148,7 @@ class CalendarVacationModal:
         return template_manager.apply_template(
             view=self.get_base_view(
                 title="이벤트 및 일정 선택",
-                event_type="event",
+                callback_id="update_calendar-modal_submit_event",
                 creator_id=original_view["private_metadata"],
             ),
             template=updated_template,
@@ -255,40 +182,17 @@ class CalendarVacationModal:
 
         return template_manager.apply_template(
             view=self.get_base_view(
-                title="휴가 및 일정 선택", event_type="vacation", creator_id=creator_id
+                title="휴가 및 일정 선택",
+                callback_id="update_calendar-modal_submit_vacation",
+                creator_id=creator_id,
             ),
             template=template,
         )
 
     def update_vacation_insert_modal(self, original_view, vacation_type):
-        date_block = block_builder.create_actions(
-            actions=(
-                block_builder.create_datepicker(
-                    "update_calendar-modal_vacation_start_date"
-                ),
-                block_builder.create_datepicker(
-                    "update_calendar-modal_vacation_end_date"
-                ),
-            ),
-        )
-        single_date_block = block_builder.create_actions(
-            actions=(
-                block_builder.create_datepicker(
-                    "update_calendar-modal_vacation_start_date"
-                ),
-            ),
-        )
-
-        time_block = block_builder.create_actions(
-            actions=(
-                block_builder.create_timepicker(
-                    "update_calendar-modal_vacation_start_time", "09:00"
-                ),
-                block_builder.create_timepicker(
-                    "update_calendar-modal_vacation_end_time", "18:00"
-                ),
-            )
-        )
+        date_block = self.create_date_block()
+        single_date_block = self.create_single_date_block()
+        time_block = self.create_time_block()
 
         vacation_dict = {
             "연차": [date_block, None],
@@ -303,6 +207,8 @@ class CalendarVacationModal:
 
         # 가져온 view를 템플릿에 적용
         updated_template.convert_view_to_template(view=original_view)
+
+        # view의 line을 수정
         updated_template.set_template_line(
             line="line_3_header",
             block=block_builder.create_block_header("휴가 일정을 선택 해주세요 :smile:"),
@@ -317,20 +223,53 @@ class CalendarVacationModal:
         return template_manager.apply_template(
             self.get_base_view(
                 title="휴가 및 일정 선택",
+                callback_id="update_calendar-modal_submit_vacation",
                 creator_id=original_view["private_metadata"],
-                event_type="vacation",
             ),
             template=updated_template,
+        )
+
+    def create_time_block(self):
+        return block_builder.create_actions(
+            actions=(
+                block_builder.create_timepicker(
+                    "update_calendar-modal_vacation_start_time", "09:00"
+                ),
+                block_builder.create_timepicker(
+                    "update_calendar-modal_vacation_end_time", "18:00"
+                ),
+            )
+        )
+
+    def create_date_block(self):
+        return block_builder.create_actions(
+            actions=(
+                block_builder.create_datepicker(
+                    "update_calendar-modal_vacation_start_date"
+                ),
+                block_builder.create_datepicker(
+                    "update_calendar-modal_vacation_end_date"
+                ),
+            ),
+        )
+
+    def create_single_date_block(self):
+        return block_builder.create_actions(
+            actions=(
+                block_builder.create_datepicker(
+                    "update_calendar-modal_vacation_start_date"
+                ),
+            ),
         )
 
     def set_view_component_properties(self, view, key, value):
         view[key] = {"type": "plain_text", "text": value}
 
-    def get_base_view(self, title, event_type, creator_id):
+    def get_base_view(self, title, callback_id, creator_id):
         view = {}
         view["blocks"] = []
         view["type"] = "modal"
-        view["callback_id"] = f"update_calendar-modal_{event_type}_submit"
+        view["callback_id"] = callback_id
         view["private_metadata"] = creator_id  # private_metadata를 통해 유저 아이디 확인
         self.set_view_component_properties(view=view, key="title", value=title)
         self.set_view_component_properties(view=view, key="submit", value="제출")

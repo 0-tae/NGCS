@@ -5,7 +5,7 @@ from google_calendar_module.google_calendar_api import calendarAPI
 import copy
 
 
-HOST = "https://53eb-221-158-214-203.ngrok-free.app/link"
+HOST = "https://1b30-221-158-214-203.ngrok-free.app/link"
 
 
 class AppHomeComponent:

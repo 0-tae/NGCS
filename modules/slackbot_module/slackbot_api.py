@@ -53,7 +53,7 @@ def post_message(channel_id, text, blocks):
     response = requests.post(
         "https://slack.com/api/chat.postMessage", headers=HEADER, json=data
     )
-
+    print(json_prettier(response.json()))
     return response.text
 
 
@@ -63,9 +63,8 @@ def modal_open(view, trigger_id):
     response = requests.post(
         "https://slack.com/api/views.open", headers=HEADER, json=data
     )
-    print(f"modal_open")
 
-    return response.text
+    return response.json()
 
 
 def modal_update(view, view_id, response_action):

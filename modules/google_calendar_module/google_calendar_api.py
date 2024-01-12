@@ -14,7 +14,7 @@ from googleapiclient.errors import HttpError
 SCOPES = ["https://www.googleapis.com/auth/calendar.events"]
 SEOUL_TIMEZONE = pytz.timezone("Asia/Seoul")
 PREFIX = "google_calendar_module/tokens"
-HOST = "https://53eb-221-158-214-203.ngrok-free.app"
+HOST = "https://1b30-221-158-214-203.ngrok-free.app"
 
 
 class GoogleCalendarAPI:
@@ -65,7 +65,7 @@ class GoogleCalendarAPI:
             token.write(credential.to_json())
 
     def get_redirect_url(self):
-        return "https://53eb-221-158-214-203.ngrok-free.app/api/auth/callback/google"
+        return HOST + "/api/auth/callback/google"
 
     def get_auth_url(self):
         with open(f"{PREFIX}/credentials.json", "r") as file:
@@ -219,29 +219,38 @@ class GoogleCalendarAPI:
         )
         return result
 
+    def find_event_by_id(self, user_id, event_id):
+        self.set_api_user(user_id)
+
+        event = (
+            self.__instance__.events()
+            .list(calendarId="primary", eventId=event_id)
+            .execute()
+        )
+
+        if not event:
+            return None
+
+        return self.make_response(event=event)
+
     # 캘린더에서 일정 받아오기
     # option : 일별, 월별
     def get_event_list(self, user_id, day_option="today"):
         # api 사용 유저 변경
         self.set_api_user(user_id)
 
-        # "month" 옵션일 때, 해당 월의 스케줄을 가져옴
-        # "week" 옵션일 때,  당월에 해당하는 한 주차 스케줄을 가져옴 (좀 복잡함)
+        # date를 입력 받았을 때, 해당 일자를 가져옴
         # "today" 옵션일 때, 금일의 스케줄을 가져옴(default)
-        now = datetime.now(SEOUL_TIMEZONE)
-
-        time_min = datetime(year=now.year, month=now.month, day=now.day).astimezone(
-            SEOUL_TIMEZONE
+        selected_date = (
+            datetime.now(SEOUL_TIMEZONE) if day_option == "today" else day_option
         )
+
+        time_min = datetime(
+            year=selected_date.year, month=selected_date.month, day=selected_date.day
+        ).astimezone(SEOUL_TIMEZONE)
         time_max = datetime(
             year=time_min.year, month=time_min.month, day=time_min.day + 1
         ).astimezone(SEOUL_TIMEZONE)
-
-        if day_option == "month":
-            last_day_of_month = module_calendar.monthrange(now.year, now.month)[1]
-            time_max = datetime(now.year, now.month, last_day_of_month).astimezone(
-                SEOUL_TIMEZONE
-            )
 
         print(f"TIME: {time_min} ~ {time_max}")
 
@@ -269,6 +278,7 @@ class GoogleCalendarAPI:
 
     def make_response(self, event):
         response = {
+            "id": event["id"],
             "summary": "(제목 없음)"
             if event.get("summary") == None
             else event.get("summary"),
