@@ -6,8 +6,9 @@ import time
 
 
 class CalendarScheduler:
-    __scheduler__ = BackgroundScheduler()
-    __scheduler_dict__ = dict()
+    def __init__(self, __scheduler__ = BackgroundScheduler(), __scheduler_dict__ = dict()):
+        self.__scheduler__ = __scheduler__
+        self.__scheduler_dict__ = __scheduler_dict__
 
     # Custom id를 통해 실제 job_id를 가져옴
     def get_job_by_function_id(self, function_id):

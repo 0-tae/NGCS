@@ -1,6 +1,5 @@
 import copy
 
-
 class ViewTemplateObject:
     def __init__(self, template_name, template: dict()):
         self.template_name = template_name
@@ -19,6 +18,7 @@ class ViewTemplateObject:
 
         return blocks
 
+    # issue
     # view.blocks 안의 첫 번째 요소부터, 템플릿에 순서대로 삽입
     # 뷰 업데이트로 인해 블럭의 갯수가 줄어들 경우, Line key의 선형 조회로 인해 블럭이 기존과 다른 라인에 매칭되는 현상
     # 예) Block: B1 B2 B3 B4 B5 , Line: L1 L2 L3 L4 L5 일때,
@@ -26,7 +26,9 @@ class ViewTemplateObject:
     # 만약 업데이트로 인해 B3가 사라질 경우
     # 초기화된 템플릿으로 인해
     # B1(B1) B2(L2) B4(L3) B5(L4) none(L5)가 되는 상황
-
+    
+    # Solved
+    # 제출 전까지 데이터를 메모리에 캐시로 저장하여 해결
     def convert_view_to_template(self, view):
         blocks = view["blocks"]
         template_lines = list(self.get_template().keys())

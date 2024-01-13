@@ -18,13 +18,13 @@ HOST = "https://1b30-221-158-214-203.ngrok-free.app"
 
 
 class GoogleCalendarAPI:
-    __instance__ = None
-    __access_users__ = dict()
-    __temp_user__ = None
-    __temp_state__ = None
+    def __init__(self, __instance__= None, __access_users__ = dict(), __temp_user__=None, __temp_state__=None):
+        self.__instance__ =__instance__
+        self.__access_users__ = __access_users__
+        self.__temp_user__ =__temp_user__
+        self.__temp_state__ =__temp_state__
 
     # 버튼 -> google 로그인 -> redirect 로 인한 user_id 정보 손실 방지 임시 방편
-
     def set_temp_state(self, state):
         self.__temp_state__ = state
 

@@ -1,16 +1,13 @@
 from google_calendar_module.google_calendar_block_builder import block_builder
-from google_calendar_module.modal_manger import modal_manger
+from modules.google_calendar_module.views.modal_manager import modal_manager
+from google_calendar_module.views.modal import Modal
 from datetime import datetime
-from modules.google_calendar_module.view_template import (
-    template_manager,
-    ViewTemplateObjectManager,
-    ViewTemplateObject,
-)
+from modules.google_calendar_module.views.view_template_manager import template_manager
 
-
-class CalendarEventModal(Modal):
+class CalendarEventModalObject(Modal):
     # 템플릿 매니저에 모달 뷰 템플릿을 정의
-    def __init__(self):
+    def __init__(self, __modal_name__ = "event"):
+        self.__modal_name__ = __modal_name__
         template_manager.create_view_template(
             "event",
             template_options=(
@@ -24,25 +21,12 @@ class CalendarEventModal(Modal):
                 "line_8_actions",
             ),
         )
-        modal_manger.create_modal(modal_name="")
-
-    def after_submit(self, creator_id):
-        template_manager.destroy_template_cache(creator_id)
-
-    # 이름에 해당하는 모달창을 얻어옴
-    def get_modal(self, modal_name, creator_id="default"):
-        modal_creater = {
-            "vacation": self.create_vacation_insert_modal,
-            "event": self.create_event_insert_modal,
-            "spread": self.create_spread_modal,
-        }
-
-        self
-
-        return modal_creater[modal_name](creator_id)
+        
+        modal_manager.add_modal(modal_name=__modal_name__, create_strategy=self.create_modal_strategy)
 
     # 일정 등록 모달창을 생성함
-    def create_event_insert_modal(self, creator_id):
+    # creator_id를 view의 private_metadata로 설정해서 템플릿 캐싱 작업에 쓰임
+    def create_modal(self, creator_id):
         template = template_manager.get_template_by_name("event")
         template.set_template_all(
             blocks=(
@@ -90,7 +74,7 @@ class CalendarEventModal(Modal):
             template=template,
         )
 
-    def update_event_insert_modal(self, original_view, all_day):
+    def update_modal(self, original_view, all_day):
         # 업데이트할 템플릿을 가져옴
         updated_template = template_manager.load_template_by_creator_id_with_name(
             creator_id=original_view["private_metadata"], template_name="event"
@@ -129,6 +113,20 @@ class CalendarEventModal(Modal):
             template=updated_template,
         )
 
+    def get_base_view(self, callback_id, creator_id):
+        view = {}
+        view["blocks"] = []
+        view["type"] = "modal"
+        view["callback_id"] = callback_id
+        view["private_metadata"] = creator_id  # private_metadata를 통해 유저 아이디 확인
+        self.set_view_component_properties(view=view, key="title", value="이벤트 및 일정 선택")
+        self.set_view_component_properties(view=view, key="submit", value="제출")
+        self.set_view_component_properties(view=view, key="close", value="취소")
+
+        return view
+
+
+    # 이 밑은 Custom Blocks
     def create_time_block(self):
         return block_builder.create_actions(
             actions=(
@@ -161,18 +159,3 @@ class CalendarEventModal(Modal):
                 ),
             ),
         )
-
-    def get_base_view(self, callback_id, creator_id):
-        view = {}
-        view["blocks"] = []
-        view["type"] = "modal"
-        view["callback_id"] = callback_id
-        view["private_metadata"] = creator_id  # private_metadata를 통해 유저 아이디 확인
-        self.set_view_component_properties(view=view, key="title", value="이벤트 및 일정 선택")
-        self.set_view_component_properties(view=view, key="submit", value="제출")
-        self.set_view_component_properties(view=view, key="close", value="취소")
-
-        return view
-
-
-modal_builder = CalendarEventModal()

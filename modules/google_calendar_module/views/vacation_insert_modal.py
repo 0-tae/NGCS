@@ -1,13 +1,9 @@
 from google_calendar_module.google_calendar_block_builder import block_builder
 from datetime import datetime
-from google_calendar_module.google_calendar_view_template import (
-    template_manager,
-    ViewTemplateObjectManager,
-    ViewTemplateObject,
-)
+from google_calendar_module.views.view_template_manager import template_manager
 
 
-class CalendarVacationModal:
+class CalendarVacationModalObject:
     # 템플릿 매니저에 모달 뷰 템플릿을 정의
     def __init__(self):
         template_manager.create_view_template(

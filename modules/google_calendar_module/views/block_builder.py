@@ -1,10 +1,9 @@
 from datetime import datetime
 
-# TODO: 블럭 빌드 작업을 따로 분리해야 함
-#       코드를 줄일 수 있을 것 같은데..
 
 
-class CalendarBlockBuilder:
+# Slack Block-kit 문법에 맞는 Block Component 추가용 클래스
+class BlockBuilder:
     def create_block_header(self, text):
         block = {
             "type": "header",
@@ -289,4 +288,4 @@ class CalendarBlockBuilder:
         return block_list
 
 
-block_builder = CalendarBlockBuilder()
+block_builder = BlockBuilder()
