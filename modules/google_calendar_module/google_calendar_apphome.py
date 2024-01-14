@@ -1,12 +1,10 @@
 import slackbot_module.slackbot_info as sb_info
 import slackbot_module.slackbot_api as slackAPI
-from google_calendar_module.google_calendar_block_builder import block_builder
-from google_calendar_module.google_calendar_api import calendarAPI
+from views.block_builder import block_builder
+from google_calendar_api import calendarAPI
 import copy
 
-
-HOST = "https://1b30-221-158-214-203.ngrok-free.app/link"
-
+OAUTH_URL = sb_info.get_oauth_url()
 
 class AppHomeComponent:
     __base_view__ = None
@@ -81,7 +79,7 @@ class AppHomeComponent:
                     block_builder.create_url_button(
                         text="구글 캘린더에 연동하기",
                         action_id="access_calendar-register",
-                        url=HOST,
+                        url=OAUTH_URL,
                     ),
                 ],
             },

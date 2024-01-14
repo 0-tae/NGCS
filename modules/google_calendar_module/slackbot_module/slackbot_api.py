@@ -82,7 +82,7 @@ def app_home_publish(user_id, view):
     response = requests.post(
         "https://slack.com/api/views.publish", headers=HEADER, json=data
     )
-
+    
     return response.text
 
 

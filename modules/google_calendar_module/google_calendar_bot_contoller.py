@@ -2,21 +2,26 @@ from flask import Flask, request, make_response, render_template, redirect, sess
 from urllib import parse
 import json
 from datetime import datetime
-import base64
 import slackbot_module.slackbot_api as slackAPI
 import slackbot_module.slackbot_info as slackInfo
-from google_calendar_module.google_calendar_api import calendarAPI
-from google_calendar_module.google_calendar_block_builder import block_builder
-from google_calendar_module.google_calendar_modal_builder import modal_builder
-from google_calendar_module.google_calendar_apphome import apphome
-from google_calendar_module.google_calendar_reminder import reminder
-from google_calendar_module.service.event_spread import spread_service
-import logging
+from views.modal_manager import modal_manager
+from google_calendar_api import calendarAPI
+from google_calendar_apphome import apphome
+from scheduler import scheduler
+from service.event_spread import spread_service
 
+# 맨 아래에 임의로 구현한 곳에서 사용
+from views.block_builder import block_builder
+
+# import logging
 # logging.basicConfig(level=logging.DEBUG)
 
 app = Flask(__name__)
 
+
+@app.route("/")
+def hello():
+    return "hello"
 
 @app.route("/interaction", methods=["POST"])
 def interactivity_controll():
@@ -31,15 +36,15 @@ def interactivity_controll():
         request_body=request_body
     )
 
-    print(action_service, action_type, callback_id)
-
     handling_func = ACTION_DICT[action_service][action_type]
-
+    
     if handling_func == None:
         return "this action have no function", 200
 
-    return handling_func(request_body, action_type, callback_id)
-
+    if not callback_id:
+        return handling_func(request_body, action_type)
+    else:
+        return handling_func(request_body, action_type, callback_id)
 
 def get_action_info(request_body):
     action = request_body.get("actions")
@@ -63,8 +68,6 @@ def get_action_info(request_body):
 
 # Get을 쓰면 없는거 불러올 때 오류는 안난다
 # 각 액션에 대한 response value를 가져옴
-
-
 def get_value_from_action(action_dict):
     action_type_dict = {
         "timepicker": ["selected_time"],
@@ -101,7 +104,7 @@ def get_user_name(user_id):
     return slackInfo.get_user_info(user_id, "real_name")
 
 
-def modal_event_submit(request_body, action_type):
+def modal_event_submit(request_body, action_type, callback_id):
     view = UTFToKoreanJSON(request_body["view"])
     view_id = view["id"]
 
@@ -116,8 +119,6 @@ def modal_event_submit(request_body, action_type):
     # 캘린더에 업데이트
     calendarAPI.insert_event(event_request=request)
 
-    modal_builder.after_submit(view["private_metadata"])
-
     return {"response_action": "clear"}, 200
 
 
@@ -129,22 +130,25 @@ def allday_changed(request_body, action_name):
     occured_action = request_body["actions"][0]
     action_id = occured_action["action_id"]
     block_id = occured_action["block_id"]
+    user_id = request_body["user"]["id"]
 
     selected_checkbox = view["state"]["values"][block_id][action_id]["selected_options"]
 
     # 선택된 체크박스의 갯수가 1개 이상이면 all-day
     all_day = True if len(selected_checkbox) > 0 else False
 
-    updated_view = modal_builder.update_event_insert_modal(
-        original_view=view, all_day=all_day
-    )
+    # "event" 모달을 가져옴, 모달의 캐시 아이디는 user_id로 함
+    modal_object = modal_manager.get_modal_object_by_name("event", cache_id=user_id)
+    
+    print(json_prettier(modal_object.get_modal()))
+    modal = modal_object.update_modal(original_view=view, all_day=all_day)
 
-    slackAPI.modal_update(view=updated_view, view_id=view_id, response_action="update")
+    slackAPI.modal_update(view=modal, view_id=view_id, response_action="update")
 
     return "ok", 200
 
 
-def modal_vacation_submit(request_body, action_type):
+def modal_vacation_submit(request_body, action_type, callback_id):
     # +기호 이슈로 인한 디코딩 코드 추가
     view = UTFToKoreanJSON(request_body["view"])
     view_id = view["id"]
@@ -163,7 +167,7 @@ def modal_vacation_submit(request_body, action_type):
     if request == None:
         return {
             "response_action": "update",
-            "view": modal_builder.get_modal(modal_name="vacation"),
+            "view": modal_manager.get_modal_object_by_name(modal_name="vacation").get_modal(),
         }, 200
 
     # 캘린더에 업데이트
@@ -269,7 +273,7 @@ def vacation_specify(vacation_type, start: datetime):
     result = vacation_type
 
     if vacation_type == "반차":
-        prefix = "오전 " if start.hour < 12 else "오후 "
+        prefix = "오전 " if start.hour < PM_START else "오후 "
         result = prefix + result
 
     return result
@@ -279,6 +283,7 @@ def vacation_type_selected(request_body, action_name):
     # +기호 이슈로 인한 디코딩 코드 추가
     view = UTFToKoreanJSON(request_body["view"])
     view_id = view["id"]
+    user_id = request_body["user"]["id"]
 
     occured_action = request_body["actions"][0]
     action_id = occured_action["action_id"]
@@ -288,7 +293,8 @@ def vacation_type_selected(request_body, action_name):
 
     vacation_type = selected_option["value"]
 
-    updated_view = modal_builder.update_vacation_insert_modal(
+    modal_object = modal_manager.get_modal_object_by_name(modal_name="vacation", cache_id=user_id)
+    updated_view = modal_object.update_modal(
         original_view=view, vacation_type=vacation_type
     )
 
@@ -298,13 +304,12 @@ def vacation_type_selected(request_body, action_name):
 
 
 def modal_open(request_body, action_name):
-    # Required Argument
     trigger_id = request_body["trigger_id"]
     user_id = request_body["user"]["id"]
     modal_type = action_name.split("_")[-1]  # "modal_open_vacation" -> vacation
 
-    modal_view = modal_builder.get_modal(modal_name=f"{modal_type}", creator_id=user_id)
-    response = slackAPI.modal_open(view=modal_view, trigger_id=trigger_id)
+    modal = modal_manager.get_modal_by_name(modal_name=modal_type, cache_id=user_id)
+    response = slackAPI.modal_open(view=modal, trigger_id=trigger_id)
 
     if modal_type == "spread":
         spread_service.modal_init_spread(view=response["view"], user_id=user_id)
@@ -334,7 +339,7 @@ def handling_oauth2():
     )
 
     apphome.refresh_single_app_home(user_id=user_id)
-    return render_template("google_calendar_module/ok.html")
+    return render_template("ok.html")
 
 
 # 연동하기 버튼에 작성된 URL
@@ -348,6 +353,9 @@ def redirect_auth_url():
 # 링크가 클릭된 이후 버튼 action이 실행된다.
 def link(request_body, action_name):
     calendarAPI.set_temp_user(user_id=request_body["user"]["id"])
+    
+    
+    print(request_body["user"]["id"])
     return "ok", 200
 
 
@@ -452,8 +460,12 @@ def today_events_post_all():
     return
 
 
-reminder.add_cron_scheduler("alert_event", today_events_post_all, hour=9, minute=50)
-reminder.execute()
+ 
+scheduler.add_cron_scheduler("alert_event", today_events_post_all, hour=9, minute=50)
+scheduler.execute()
+
+
+
 
 # 알림
 # 무엇을 알림?

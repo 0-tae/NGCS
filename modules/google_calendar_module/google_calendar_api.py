@@ -1,8 +1,8 @@
 from datetime import datetime
-import calendar as module_calendar
 import os.path
 import pytz
 import json
+import slackbot_module.slackbot_info as sb_info
 from requests_oauthlib import OAuth2Session
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -13,11 +13,12 @@ from googleapiclient.errors import HttpError
 # If modifying these scopes, delete the file token.json.
 SCOPES = ["https://www.googleapis.com/auth/calendar.events"]
 SEOUL_TIMEZONE = pytz.timezone("Asia/Seoul")
-PREFIX = "google_calendar_module/tokens"
-HOST = "https://1b30-221-158-214-203.ngrok-free.app"
+PREFIX = "tokens"
+HOST = sb_info.get_host()
 
 
 class GoogleCalendarAPI:
+    
     def __init__(self, __instance__= None, __access_users__ = dict(), __temp_user__=None, __temp_state__=None):
         self.__instance__ =__instance__
         self.__access_users__ = __access_users__
@@ -92,7 +93,7 @@ class GoogleCalendarAPI:
             prompt="select_account",
         )
 
-        # 유저 아이디 임시 저장
+        # 유저 상태 임시저장
         self.set_temp_state(state)
         print("request state:", state)
         return authorization_url

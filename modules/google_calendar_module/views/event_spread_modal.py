@@ -1,12 +1,18 @@
-from google_calendar_module.views.block_builder import block_builder
+from views.block_builder import block_builder
+from views.view_template_manager import template_manager
+from views.modal import ModalObject
 from datetime import datetime
-from google_calendar_module.views.view_template_manager import template_manager
 
-
-class CalendarSpreadModalObject:
+class CalendarSpreadModalObject(ModalObject):
     # 템플릿 매니저에 모달 뷰 템플릿을 정의
-    def __init__(self):
-        template_manager.create_view_template(
+    def __init__(self,
+                 __modal_name__ = "spread", 
+                 __modal__ = None,
+                 __modal_title__ = "일정 전파하기",
+                 __callback_id__ = "spread_calendar-modal_submit_spread"):
+      
+        super().__init__(__modal_name__, __modal__, __modal_title__, __callback_id__)
+        template_manager.add_view_template(
             "spread",
             template_options=(
                 "line_1_header",  # 어떤 이벤트를 전파하는지?
@@ -17,8 +23,8 @@ class CalendarSpreadModalObject:
             ),
         )
 
-    def create_spread_modal(self, creator_id):
-        template = template_manager.get_template_by_name("spread")
+    def create_modal(self):
+        template = template_manager.get_view_template_by_name("spread")
         template.set_template_all(
             blocks=(
                 block_builder.create_block_header("어떤 일정을 전파 할까요?"),
@@ -52,17 +58,24 @@ class CalendarSpreadModalObject:
             )
         )
 
-        return template_manager.apply_template(
-            view=self.get_base_view(
-                callback_id="spread_calendar-modal_submit_spread",
-                creator_id=creator_id,
-            ),
+        # base_view에 template에 쓰여진 blocks를 적용
+        # base_view의 private_metadata를 통해 캐시를 등록
+        # template_cache_id는 현재 인스턴스 주소 값의 일부
+        modal =  template_manager.apply_template(
+            view=self.get_modal(),
             template=template,
+            cache_id=self.get_modal()["private_metadata"]
         )
+        
+        # 현재 인스턴스의 modal을 변경
+        self.set_modal(modal)
+        
+        return modal
 
     def update_spread_event_modal(self, original_view, date, event_list: list):
-        updated_template = template_manager.load_template_by_creator_id_with_name(
-            creator_id=original_view["private_metadata"], template_name="spread"
+        updated_template = template_manager.get_view_template_by_name(
+            template_name="spread",
+            cache_id=original_view["private_metadata"]
         )
 
         updated_template.set_template_line(
@@ -84,18 +97,25 @@ class CalendarSpreadModalObject:
             ),
         )
 
-        return template_manager.apply_template(
-            view=self.get_base_view(
-                callback_id="spread_calendar-modal_submit_spread",
-                creator_id=original_view["private_metadata"],
-            ),
+        # base_view에 template에 쓰여진 blocks를 적용
+        # base_view의 private_metadata를 통해 캐시를 등록
+        # template_cache_id는 현재 인스턴스 주소 값의 일부
+        modal =  template_manager.apply_template(
+            view=self.get_modal(),
             template=updated_template,
+            cache_id=self.get_modal()["private_metadata"]
         )
+        
+        # 현재 인스턴스의 modal을 변경
+        self.set_modal(modal)
+        
+        return modal
 
     def update_spread_member_type_modal(self, original_view, selected_type):
         # 업데이트할 템플릿을 가져옴
-        updated_template = template_manager.load_template_by_creator_id_with_name(
-            creator_id=original_view["private_metadata"], template_name="spread"
+        updated_template = template_manager.get_view_template_by_name(
+            template_name="spread",
+            cache_id=original_view["private_metadata"]
         )
 
         # 가져온 view를 템플릿에 적용
@@ -121,25 +141,16 @@ class CalendarSpreadModalObject:
             block=member_input if selected_type == "멤버" else channel_input,
         )
 
-        return template_manager.apply_template(
-            view=self.get_base_view(
-                callback_id="spread_calendar-modal_submit_spread",
-                creator_id=original_view["private_metadata"],
-            ),
+        # base_view에 template에 쓰여진 blocks를 적용
+        # base_view의 private_metadata를 통해 캐시를 등록
+        # template_cache_id는 현재 인스턴스 주소 값의 일부
+        modal = template_manager.apply_template(
+            view=self.get_modal(),
             template=updated_template,
+            cache_id=self.get_modal()["private_metadata"]
         )
-
-    def set_view_component_properties(self, view, key, value):
-        view[key] = {"type": "plain_text", "text": value}
-
-    def get_base_view(self, callback_id, creator_id):
-        view = {}
-        view["blocks"] = []
-        view["type"] = "modal"
-        view["callback_id"] = callback_id
-        view["private_metadata"] = creator_id  # private_metadata를 통해 유저 아이디 확인
-        self.set_view_component_properties(view=view, key="title", value="일정 전파하기")
-        self.set_view_component_properties(view=view, key="submit", value="전파")
-        self.set_view_component_properties(view=view, key="close", value="취소")
-
-        return view
+        
+        # 현재 인스턴스의 modal을 변경
+        self.set_modal(modal)
+        
+        return modal

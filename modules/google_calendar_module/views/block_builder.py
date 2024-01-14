@@ -1,7 +1,5 @@
 from datetime import datetime
 
-
-
 # Slack Block-kit 문법에 맞는 Block Component 추가용 클래스
 class BlockBuilder:
     def create_block_header(self, text):
@@ -49,7 +47,7 @@ class BlockBuilder:
 
         # ex) 최용태 님 오늘 09:00~12:00 오전 반차
         # ex) 최용태 님 오늘 연차
-        return f"- *{name}* 님 {event_summary}"
+        return f"*{name}* 님 {event_summary}"
 
     def create_block_section_common_event(self, event):
         event_summary = event["summary"]

@@ -1,7 +1,7 @@
 class ViewTemplate:
-    def __init__(self, template_name, template: dict()):
-        self.template_name = template_name
-        self.template = template  # dict
+    def __init__(self, __template_name__, __template__):
+        self.__template_name__ = __template_name__
+        self.__template__ = __template__  # dict
 
     # 받아온 템플릿을 현재 ViewTemplate 규격에 맞추어 블럭으로 변환함
     def convert_template_to_blocks(self):
@@ -15,7 +15,7 @@ class ViewTemplate:
                 blocks.append(block)
 
         return blocks
-
+    # Issue
     # view.blocks 안의 첫 번째 요소부터, 템플릿에 순서대로 삽입
     # 뷰 업데이트로 인해 블럭의 갯수가 줄어들 경우, Line key의 선형 조회로 인해 블럭이 기존과 다른 라인에 매칭되는 현상
     # 예) Block: B1 B2 B3 B4 B5 , Line: L1 L2 L3 L4 L5 일때,
@@ -51,7 +51,7 @@ class ViewTemplate:
 
     # 템플릿에 라인을 추가함
     def add_template_line(self, line, block):
-        self.template.update({line: block})
+        self.__template__.update({line: block})
 
     # 라인에 대해 블럭을 설정함
     def set_template_line(self, line, block):
@@ -60,7 +60,7 @@ class ViewTemplate:
                 f"현재 템플릿에 존재하지 않는 line에 대한 업데이트를 시도함 -> {line} is not in {list(self.get_template().keys())}"
             )
 
-        self.template.update({line: block})
+        self.__template__.update({line: block})
 
     def set_template_all(self, blocks):
         lines = list(self.get_template().keys())
@@ -75,16 +75,16 @@ class ViewTemplate:
 
     # 해당 라인에 존재하는 블럭을 가져옴
     def get_template_block_in_line(self, line_name):
-        return self.template.get(line_name)
+        return self.__template__.get(line_name)
 
     # 현재 ViewTemplate 객체의 template를 설정함
     def set_template(self, new_template):
-        self.template = new_template
+        self.__template__ = new_template
 
     # 현재 ViewTemplate 객체의 tempalte(dict)를 가져옴
-    def get_template(self) -> dict():
-        return self.template
+    def get_template(self) -> dict:
+        return self.__template__
 
     # 템플릿의 이름을 가져옴
     def get_template_name(self):
-        return self.template_name
+        return self.__template_name__

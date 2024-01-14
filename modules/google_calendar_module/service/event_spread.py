@@ -1,10 +1,8 @@
 import slackbot_module.slackbot_api as slackAPI
 import slackbot_module.slackbot_info as slackInfo
-from google_calendar_module.google_calendar_api import calendarAPI
-from google_calendar_module.google_calendar_block_builder import block_builder
-from google_calendar_module.google_calendar_modal_builder import modal_builder
-from google_calendar_module.google_calendar_apphome import apphome
-from google_calendar_module.google_calendar_reminder import reminder
+from google_calendar_api import calendarAPI
+from views.block_builder import block_builder
+from views.modal_manager import modal_manager
 import json
 from datetime import datetime
 
@@ -52,7 +50,7 @@ class EventSpreadService:
         )
 
     # 모달 제출 후, 채널 및 멤버에 전파
-    def modal_spread_submit(self, request_body, action_name):
+    def modal_spread_submit(self, request_body, action_name, callback_id):
         view = UTFToKoreanJSON(request_body["view"])
         user_id = request_body["user"]["id"]
         user_name = get_user_name(user_id=user_id)
@@ -62,9 +60,6 @@ class EventSpreadService:
         for block in view["state"]["values"].values():
             for action_id, action_dict in block.items():
                 data[action_id] = get_value_from_action(action_dict)
-
-        # 제출 이후 모달창에 대한 캐시 삭제
-        modal_builder.after_submit(view["private_metadata"])
 
         summary_with_time = data.get("spread_calendar-modal_spread_event_select")
 
@@ -126,18 +121,21 @@ class EventSpreadService:
             )
         )
 
-        updated_view = modal_builder.update_spread_event_modal(
+        modal_object = modal_manager.get_modal_object_by_name(modal_name="spread",cache_id=user_id)
+        
+        modal = modal_object.update_spread_event_modal(
             original_view=view, date=now.strftime("%Y-%m-%d"), event_list=event_list
         )
 
         return slackAPI.modal_update(
-            view=updated_view, view_id=view["id"], response_action="update"
+            view=modal, view_id=view["id"], response_action="update"
         )
 
     # 타입이 선택되면 멤버 혹은 채널에 대한 inputbox가 나옴
     def spread_type_selected(self, request_body, action_name):
         view = UTFToKoreanJSON(request_body["view"])
         view_id = view["id"]
+        user_id = request_body["user"]["id"]
 
         occured_action = request_body["actions"][0]
         action_id = occured_action["action_id"]
@@ -149,11 +147,13 @@ class EventSpreadService:
 
         target_type = selected_option["value"]
 
-        updated_view = modal_builder.update_spread_member_type_modal(
+        modal_object = modal_manager.get_modal_object_by_name(modal_name="spread", cache_id=user_id)
+        modal = modal_object.update_spread_member_type_modal(
             original_view=view, selected_type=target_type
         )
+        
         slackAPI.modal_update(
-            view=updated_view, view_id=view_id, response_action="update"
+            view=modal, view_id=view_id, response_action="update"
         )
 
         return "ok", 200

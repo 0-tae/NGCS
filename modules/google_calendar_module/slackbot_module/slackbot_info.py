@@ -7,6 +7,11 @@ BOT_TOKEN = os.environ["SLACKBOT_TOKEN"]
 USER_LIST = []
 query = "슬랙 봇 테스트"
 
+def get_oauth_url():
+    return get_host()+"/link"
+
+def get_host():
+    return "https://809e-124-59-215-240.ngrok-free.app"
 
 def get_header():
     header = {
