@@ -1,8 +1,7 @@
-from views.modal import ModalObject
-from views.event_insert_modal import CalendarEventModalObject
-from views.vacation_insert_modal import CalendarVacationModalObject
-from views.event_spread_modal import CalendarSpreadModalObject
-from scheduler import scheduler
+from views.modal.modal import ModalObject
+from views.modal.event_insert_modal import CalendarEventModalObject
+from views.modal.vacation_insert_modal import CalendarVacationModalObject
+from views.modal.event_spread_modal import CalendarSpreadModalObject
 import copy
 
 

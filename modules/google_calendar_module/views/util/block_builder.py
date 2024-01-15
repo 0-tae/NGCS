@@ -127,17 +127,20 @@ class BlockBuilder:
             "action_id": action_id,
         }
 
-    def create_option(self, text):
+    def create_option(self, text, value = None):
         return {
             "text": {"type": "plain_text", "text": text, "emoji": True},
-            "value": text,
+            "value": text if not value else value,
         }
 
     def create_static_select(self, placeholder_text, action_id, options):
         option_list = []
 
-        for option_text in options:
-            option_list.append(self.create_option(text=option_text))
+        for option in options:
+            if not option.get("text") or not option.get("value"):
+                raise ValueError("option이 형식을 충족하지 않음(create_static_select)")
+            
+            option_list.append(option)
 
         return {
             "type": "static_select",

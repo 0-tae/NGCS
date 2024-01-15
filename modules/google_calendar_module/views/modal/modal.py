@@ -1,5 +1,5 @@
-from views.view_template_manager import template_manager
-from views.block_builder import block_builder
+from views.util.view_template_manager import template_manager
+from views.util.block_builder import block_builder
 
 # 이름이 ModalObject인 이유는.. 실제 사용될 Modal은 Json String 이기 때문
 # Abstract class for ModalObject classes

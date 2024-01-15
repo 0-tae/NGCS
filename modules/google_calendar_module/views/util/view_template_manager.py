@@ -1,7 +1,5 @@
 import copy
-from views.view_tempate import ViewTemplate
-from scheduler import scheduler
-
+from views.util.view_tempate import ViewTemplate
 
 CACHE_EXPIRE = 30
 

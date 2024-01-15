@@ -1,20 +1,21 @@
-from views.block_builder import block_builder
-from views.modal import ModalObject
+from views.util.block_builder import block_builder
+from views.util.view_template_manager import template_manager
+from views.modal.modal import ModalObject
 from datetime import datetime
-from views.view_template_manager import template_manager
 
+ACTION_GROUP = "vacation_insert"
 
 class CalendarVacationModalObject(ModalObject):
     # 템플릿 매니저에 모달 뷰 템플릿을 정의
     def __init__(self,
-                 __modal_name__ = "vacation", 
+                 __modal_name__ = ACTION_GROUP, 
                  __modal__ = None, 
                  __modal_title__ = "휴가 등록하기",
-                 __callback_id__ = "update_calendar-modal_submit_vacation"):
+                 __callback_id__ = f"{ACTION_GROUP}-modal_submit_vacation"):
         
         super().__init__(__modal_name__, __modal__, __modal_title__, __callback_id__)
         template_manager.add_view_template(
-            "vacation",
+            ACTION_GROUP,
             template_options=(
                 "line_1_header",
                 "line_2_actions",
@@ -27,7 +28,7 @@ class CalendarVacationModalObject(ModalObject):
     # 휴가 등록 모달창을 생성함
     def create_modal(self):
         # view template을 설정
-        template = template_manager.get_view_template_by_name("vacation")
+        template = template_manager.get_view_template_by_name(ACTION_GROUP)
 
         template.set_template_line(
             line="line_1_header",
@@ -39,12 +40,14 @@ class CalendarVacationModalObject(ModalObject):
                 actions=(
                     block_builder.create_user_select(
                         "멤버 선택(미선택 시, 본인)",
-                        "update_calendar-modal_vacation_member_select",
+                        f"{ACTION_GROUP}-modal_vacation_member_select",
                     ),
                     block_builder.create_static_select(
                         placeholder_text="휴가 선택",
-                        action_id="update_calendar-modal_vacation_type_select",
-                        options=("연차", "시간 연차", "반차"),
+                        action_id=f"{ACTION_GROUP}-modal_vacation_type_select",
+                        options=(block_builder.create_option("연차"),
+                                 block_builder.create_option("시간 연차"),
+                                    block_builder.create_option("반차"),)
                     ),
                 )
             ),
@@ -77,7 +80,7 @@ class CalendarVacationModalObject(ModalObject):
 
         # 업데이트할 템플릿을 가져옴
         updated_template = template_manager.get_view_template_by_name(
-            template_name="vacation", cache_id=original_view["private_metadata"]
+            template_name=ACTION_GROUP, cache_id=original_view["private_metadata"]
         )
 
         # 가져온 view를 템플릿에 적용
@@ -114,10 +117,10 @@ class CalendarVacationModalObject(ModalObject):
         return block_builder.create_actions(
             actions=(
                 block_builder.create_timepicker(
-                    "update_calendar-modal_vacation_start_time", "09:00"
+                    self.action_id("modal_vacation_start_time"), "09:00"
                 ),
                 block_builder.create_timepicker(
-                    "update_calendar-modal_vacation_end_time", "18:00"
+                    self.action_id("modal_vacation_end_time"), "18:00"
                 ),
             )
         )
@@ -126,10 +129,10 @@ class CalendarVacationModalObject(ModalObject):
         return block_builder.create_actions(
             actions=(
                 block_builder.create_datepicker(
-                    "update_calendar-modal_vacation_start_date"
+                    self.action_id("modal_vacation_start_date")
                 ),
                 block_builder.create_datepicker(
-                    "update_calendar-modal_vacation_end_date"
+                    self.action_id("modal_vacation_end_date")
                 ),
             ),
         )
@@ -138,7 +141,10 @@ class CalendarVacationModalObject(ModalObject):
         return block_builder.create_actions(
             actions=(
                 block_builder.create_datepicker(
-                    "update_calendar-modal_vacation_start_date"
+                    self.action_id("modal_vacation_start_date")
                 ),
             ),
         )
+        
+    def action_id(self, action_type):
+        return f"{ACTION_GROUP}-{action_type}"

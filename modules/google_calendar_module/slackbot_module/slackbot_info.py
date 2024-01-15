@@ -11,7 +11,7 @@ def get_oauth_url():
     return get_host()+"/link"
 
 def get_host():
-    return "https://809e-124-59-215-240.ngrok-free.app"
+    return "https://18bf-221-158-214-203.ngrok-free.app"
 
 def get_header():
     header = {

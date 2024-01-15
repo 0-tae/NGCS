@@ -4,24 +4,21 @@ import json
 from datetime import datetime
 import slackbot_module.slackbot_api as slackAPI
 import slackbot_module.slackbot_info as slackInfo
-from views.modal_manager import modal_manager
+import slackbot_module.slackbot_utils as util
 from google_calendar_api import calendarAPI
 from google_calendar_apphome import apphome
 from scheduler import scheduler
 from service.event_spread import spread_service
+from service.event_insert import event_insert_service
+from service.vacation_insert import vacation_insert_service
 
 # 맨 아래에 임의로 구현한 곳에서 사용
-from views.block_builder import block_builder
+from views.util.block_builder import block_builder
 
 # import logging
 # logging.basicConfig(level=logging.DEBUG)
 
 app = Flask(__name__)
-
-
-@app.route("/")
-def hello():
-    return "hello"
 
 @app.route("/interaction", methods=["POST"])
 def interactivity_controll():
@@ -32,7 +29,7 @@ def interactivity_controll():
     __temp_request_body__ = request_body
 
     # 핸들링에 필요한 액션 처리
-    (action_service, action_type, callback_id) = get_action_info(
+    (action_service, action_type) = get_action_info(
         request_body=request_body
     )
 
@@ -41,294 +38,26 @@ def interactivity_controll():
     if handling_func == None:
         return "this action have no function", 200
 
-    if not callback_id:
-        return handling_func(request_body, action_type)
-    else:
-        return handling_func(request_body, action_type, callback_id)
+    return handling_func(request_body)
 
 def get_action_info(request_body):
     action = request_body.get("actions")
-
-    # modal submit 일 때
-    if action == None:
-        callback_id = request_body["view"]["callback_id"].split("-")
+    print
+    # view_submission 일 때
+    if not action:
+        callback_id = request_body["view"].get("callback_id").split("-")
         action_service = callback_id[0]
         action_type = callback_id[1]
-        return (action_service, action_type, callback_id)
-
-    # 그 이외 action 일 때
-    action_id = action[0].get("action_id").split("-")
-
-    print("action_id:", action_id)
-    action_service = action_id[0]
-    action_type = action_id[1]
-
-    return (action_service, action_type, None)
-
-
-# Get을 쓰면 없는거 불러올 때 오류는 안난다
-# 각 액션에 대한 response value를 가져옴
-def get_value_from_action(action_dict):
-    action_type_dict = {
-        "timepicker": ["selected_time"],
-        "datepicker": ["selected_date"],
-        "static_select": ["selected_option", "text", "text"],
-        "users_select": ["selected_user"],
-        "plain_text_input": ["value"],
-        "checkboxes": ["selected_options"],
-    }
-
-    keys = action_type_dict[action_dict["type"]]
-
-    # selected_option, text, text
-    value = get_dictionary_value_for_depth(
-        keys=keys, dictionary=action_dict, current_depth=0
-    )
-
-    return value
-
-
-def get_dictionary_value_for_depth(keys, dictionary, current_depth):
-    if dictionary.get(keys[current_depth]) == None:
-        return None
-
-    current_dictionary = dictionary[keys[current_depth]]
-
-    if current_depth == len(keys) - 1:
-        return current_dictionary
-
-    return get_dictionary_value_for_depth(keys, current_dictionary, current_depth + 1)
-
-
-def get_user_name(user_id):
-    return slackInfo.get_user_info(user_id, "real_name")
-
-
-def modal_event_submit(request_body, action_type, callback_id):
-    view = UTFToKoreanJSON(request_body["view"])
-    view_id = view["id"]
-
-    data = dict()
-
-    for block in view["state"]["values"].values():
-        for action_id, action_dict in block.items():
-            data[action_id] = get_value_from_action(action_dict)
-
-    request = make_google_calendar_api_event_insert_request(data=data)
-
-    # 캘린더에 업데이트
-    calendarAPI.insert_event(event_request=request)
-
-    return {"response_action": "clear"}, 200
-
-
-def allday_changed(request_body, action_name):
-    # +기호 이슈로 인한 디코딩 코드 추가
-    view = UTFToKoreanJSON(request_body["view"])
-    view_id = view["id"]
-
-    occured_action = request_body["actions"][0]
-    action_id = occured_action["action_id"]
-    block_id = occured_action["block_id"]
-    user_id = request_body["user"]["id"]
-
-    selected_checkbox = view["state"]["values"][block_id][action_id]["selected_options"]
-
-    # 선택된 체크박스의 갯수가 1개 이상이면 all-day
-    all_day = True if len(selected_checkbox) > 0 else False
-
-    # "event" 모달을 가져옴, 모달의 캐시 아이디는 user_id로 함
-    modal_object = modal_manager.get_modal_object_by_name("event", cache_id=user_id)
     
-    print(json_prettier(modal_object.get_modal()))
-    modal = modal_object.update_modal(original_view=view, all_day=all_day)
+    else:   # 그 이외 action 일 때
+        action_id = action[0].get("action_id").split("-")
+        action_service = action_id[0]
+        action_type = action_id[1]
 
-    slackAPI.modal_update(view=modal, view_id=view_id, response_action="update")
+    return (action_service, action_type)
 
-    return "ok", 200
-
-
-def modal_vacation_submit(request_body, action_type, callback_id):
-    # +기호 이슈로 인한 디코딩 코드 추가
-    view = UTFToKoreanJSON(request_body["view"])
-    view_id = view["id"]
-    user_id = request_body["user"]["id"]
-
-    data = dict()
-
-    for block in view["state"]["values"].values():
-        for action_id, action_dict in block.items():
-            data[action_id] = get_value_from_action(action_dict)
-
-    data["requested_user_id"] = user_id
-
-    request = make_google_calendar_api_vacation_insert_request(data=data)
-
-    if request == None:
-        return {
-            "response_action": "update",
-            "view": modal_manager.get_modal_object_by_name(modal_name="vacation").get_modal(),
-        }, 200
-
-    # 캘린더에 업데이트
-    calendarAPI.insert_event(event_request=request)
-    # event_spread.spread()
-
-    return {"response_action": "clear"}, 200
-
-
-def make_google_calendar_api_event_insert_request(data):
-    request = dict()
-
-    # google_calendar api 표준 : Dict {summary, start, end, all-day}
-    start_time = data.get("update_calendar-modal_event_start_time")
-    end_time = data.get("update_calendar-modal_event_end_time")
-    date = data.get("update_calendar-modal_event_date")
-
-    summary = data.get("update_calendar-modal_event_summary")
-    description = data.get("update_calendar-modal_event_description")
-    all_day = True if len(data.get("update_calendar-modal_event_allday")) > 0 else False
-
-    # 2023-01-09
-    # 연차일 경우는 date, 이외는 dateTime
-    (start, end) = (
-        (
-            datetime.strptime(date, "%Y-%m-%d"),
-            datetime.strptime(date, "%Y-%m-%d"),
-        )
-        if all_day
-        else (
-            datetime.strptime(f"{date} {start_time}", "%Y-%m-%d %H:%M"),
-            datetime.strptime(f"{date} {end_time}", "%Y-%m-%d %H:%M"),
-        )
-    )
-
-    # 최용태 - 연차
-    request["summary"] = summary
-    request["start"] = start
-    request["end"] = end
-    request["description"] = description
-    request["all-day"] = all_day
-
-    return request
-
-
-def make_google_calendar_api_vacation_insert_request(data):
-    request = dict()
-
-    # google_calendar api 표준 : Dict {summary, start, end, all-day}
-    start_time = data.get("update_calendar-modal_vacation_start_time")
-    end_time = data.get("update_calendar-modal_vacation_end_time")
-    start_date = data.get("update_calendar-modal_vacation_start_date")
-    end_date = data.get("update_calendar-modal_vacation_end_date")
-    vacation_type = data.get("update_calendar-modal_vacation_type_select")
-    selected_user = data.get("update_calendar-modal_vacation_member_select")
-    requested_user = data.get("requested_user_id")
-
-    # 휴가를 선택하지 않았을 때 예외처리
-    if vacation_type == None:
-        return None
-
-    # 유저가 선택되지 않았다면 신청자 본인
-    user_name = get_user_name(
-        selected_user if selected_user != None else requested_user
-    )
-
-    # 2023-01-09
-    # 연차일 경우는 date, 이외는 dateTime
-    (start, end) = (
-        (
-            datetime.strptime(start_date, "%Y-%m-%d"),
-            datetime.strptime(end_date, "%Y-%m-%d"),
-        )
-        if vacation_type == "연차"
-        else (
-            datetime.strptime(f"{start_date} {start_time}", "%Y-%m-%d %H:%M"),
-            datetime.strptime(f"{start_date} {end_time}", "%Y-%m-%d %H:%M"),
-        )
-    )
-
-    # 최용태 - 연차
-    request["summary"] = (
-        user_name
-        + "-"
-        + vacation_specify(
-            vacation_type=vacation_type,
-            start=start,
-        )
-    )
-
-    request["start"] = start
-    request["end"] = end
-    request["description"] = None  # 사용하지 않음
-    request["all-day"] = True if vacation_type == "연차" else False
-
-    return request
-
-
-def vacation_specify(vacation_type, start: datetime):
-    AM_START = 9
-    PM_START = 12
-
-    result = vacation_type
-
-    if vacation_type == "반차":
-        prefix = "오전 " if start.hour < PM_START else "오후 "
-        result = prefix + result
-
-    return result
-
-
-def vacation_type_selected(request_body, action_name):
-    # +기호 이슈로 인한 디코딩 코드 추가
-    view = UTFToKoreanJSON(request_body["view"])
-    view_id = view["id"]
-    user_id = request_body["user"]["id"]
-
-    occured_action = request_body["actions"][0]
-    action_id = occured_action["action_id"]
-    block_id = occured_action["block_id"]
-
-    selected_option = view["state"]["values"][block_id][action_id]["selected_option"]
-
-    vacation_type = selected_option["value"]
-
-    modal_object = modal_manager.get_modal_object_by_name(modal_name="vacation", cache_id=user_id)
-    updated_view = modal_object.update_modal(
-        original_view=view, vacation_type=vacation_type
-    )
-
-    slackAPI.modal_update(view=updated_view, view_id=view_id, response_action="update")
-
-    return "ok", 200
-
-
-def modal_open(request_body, action_name):
-    trigger_id = request_body["trigger_id"]
-    user_id = request_body["user"]["id"]
-    modal_type = action_name.split("_")[-1]  # "modal_open_vacation" -> vacation
-
-    modal = modal_manager.get_modal_by_name(modal_name=modal_type, cache_id=user_id)
-    response = slackAPI.modal_open(view=modal, trigger_id=trigger_id)
-
-    if modal_type == "spread":
-        spread_service.modal_init_spread(view=response["view"], user_id=user_id)
-
-    return "ok", 200
-
-
-def calendar_refresh(request_body, action_name):
-    # Required Argument
-    user_id = request_body["user"]["id"]
-
-    apphome.refresh_single_app_home(user_id=user_id)
-
-    return "ok", 200
-
-
-# 코드를 받아옴
+# 파라미터로 state, code등의 정보를 가져옴
 # 토큰을 생성
-# 창을 닫으라는 html을 return
 @app.route("/api/auth/callback/google", methods=["GET"])
 def handling_oauth2():
     response_url = request.url
@@ -351,60 +80,45 @@ def redirect_auth_url():
 
 
 # 링크가 클릭된 이후 버튼 action이 실행된다.
-def link(request_body, action_name):
+def link(request_body):
     calendarAPI.set_temp_user(user_id=request_body["user"]["id"])
-    
-    
     print(request_body["user"]["id"])
     return "ok", 200
 
-
-def UTFToKorean(text):
-    return text.encode("UTF-8").decode("UTF-8").replace("+", " ")
-
-
-def UTFToKoreanJSON(data):
-    converted_data = json.dumps(data).replace("+", " ")
-    return json.loads(converted_data)
-
-
-def json_prettier(data):
-    return json.dumps(data, indent=4, separators=(",", ":"), sort_keys=True)
-
-
 ACTION_DICT = {
-    "read_calendar": {
-        "refresh": calendar_refresh,
-        "today_vacation": None,
-        "today_event": None,
+    "apphome":{
+        "refresh": apphome.refresh
     },
-    "update_calendar": {
-        "modal_open_vacation": modal_open,
-        "modal_open_event": modal_open,
+    "vacation_insert": {
+        "modal_open_vacation": vacation_insert_service.modal_open,
         "modal_vacation_member_select": None,
         "modal_vacation_start_time": None,
         "modal_vacation_end_time": None,
         "modal_vacation_start_date": None,
         "modal_vacation_end_date": None,
-        "modal_vacation_type_select": vacation_type_selected,
-        "modal_submit_vacation": modal_vacation_submit,
+        "modal_vacation_type_select": vacation_insert_service.vacation_type_selected,
+        "modal_submit_vacation": vacation_insert_service.modal_vacation_submit,
+    },
+    "event_insert": {
+        "modal_open_event": event_insert_service.modal_open,
         "modal_event_summary": None,
         "modal_event_date": None,
         "modal_event_start_time": None,
         "modal_event_end_time": None,
         "modal_event_description": None,
-        "modal_event_allday": allday_changed,
-        "modal_submit_event": modal_event_submit,
+        "modal_event_allday": event_insert_service.allday_changed,
+        "modal_submit_event": event_insert_service.modal_event_submit,
     },
     "access_calendar": {"register": link},
-    "spread_calendar": {
-        "modal_open_spread": modal_open,
+    "event_spread": {
+        "modal_open_spread": spread_service.modal_open,
         "modal_submit_spread": spread_service.modal_spread_submit,
         "modal_spread_date_select": spread_service.spread_date_selected,
         "modal_spread_event_select": None,
         "modal_spread_type_select": spread_service.spread_type_selected,
         "modal_spread_users_select": None,
         "modal_spread_channels_select": None,
+        "insert_event":spread_service.insert_event
     },
 }
 
@@ -458,8 +172,6 @@ def today_events_post_all():
         )
 
     return
-
-
  
 scheduler.add_cron_scheduler("alert_event", today_events_post_all, hour=9, minute=50)
 scheduler.execute()

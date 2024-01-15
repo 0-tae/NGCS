@@ -1,6 +1,6 @@
 import slackbot_module.slackbot_info as sb_info
 import slackbot_module.slackbot_api as slackAPI
-from views.block_builder import block_builder
+from views.util.block_builder import block_builder
 from google_calendar_api import calendarAPI
 import copy
 
@@ -21,6 +21,11 @@ class AppHomeComponent:
 
         self.publish(view=view, user_id=user_id)
 
+    def refresh(self, request_body):
+        user_id = request_body["user"]["id"]
+        apphome.refresh_single_app_home(user_id=user_id)
+        return "ok", 200
+
     def init_app_home(self):
         user_list = sb_info.get_user_list()
         for user in user_list:
@@ -38,22 +43,22 @@ class AppHomeComponent:
         initial_block_list = [
             {
                 "type": "section",
-                "text": {"type": "mrkdwn", "text": "안녕하세요. 구글캘린더 봇입니다!:smile:"},
+                "text": {"type": "mrkdwn", "text": "안녕하세요. 구글 캘린더 봇입니다! :smile:"},
             },
             {
                 "type": "actions",
                 "elements": [
                     block_builder.create_button(
-                        "새로 고침:arrows_counterclockwise:", "read_calendar-refresh"
+                        text = "새로 고침 :arrows_counterclockwise:", action_id="apphome-refresh"
                     ),
                     block_builder.create_button(
-                        "휴가 등록", "update_calendar-modal_open_vacation"
+                        text = "휴가 등록", action_id="vacation_insert-modal_open_vacation"
                     ),
                     block_builder.create_button(
-                        "일정 등록", "update_calendar-modal_open_event"
+                        text = "일정 등록", action_id="event_insert-modal_open_event"
                     ),
                     block_builder.create_button(
-                        "내 일정 전파하기", "spread_calendar-modal_open_spread"
+                        text = "내 일정 전파하기", action_id="event_spread-modal_open_spread"
                     ),
                 ],
             },
