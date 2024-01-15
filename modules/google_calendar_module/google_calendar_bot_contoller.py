@@ -20,6 +20,7 @@ from views.util.block_builder import block_builder
 
 app = Flask(__name__)
 
+
 @app.route("/interaction", methods=["POST"])
 def interactivity_controll():
     # Slack이 Content-Type이 x-from-included-data인 request를 보냄
@@ -29,32 +30,31 @@ def interactivity_controll():
     __temp_request_body__ = request_body
 
     # 핸들링에 필요한 액션 처리
-    (action_service, action_type) = get_action_info(
-        request_body=request_body
-    )
+    (action_service, action_type) = get_action_info(request_body=request_body)
 
     handling_func = ACTION_DICT[action_service][action_type]
-    
+
     if handling_func == None:
         return "this action have no function", 200
 
     return handling_func(request_body)
 
+
 def get_action_info(request_body):
     action = request_body.get("actions")
-    print
     # view_submission 일 때
     if not action:
         callback_id = request_body["view"].get("callback_id").split("-")
         action_service = callback_id[0]
         action_type = callback_id[1]
-    
-    else:   # 그 이외 action 일 때
+
+    else:  # 그 이외 action 일 때
         action_id = action[0].get("action_id").split("-")
         action_service = action_id[0]
         action_type = action_id[1]
 
     return (action_service, action_type)
+
 
 # 파라미터로 state, code등의 정보를 가져옴
 # 토큰을 생성
@@ -85,10 +85,9 @@ def link(request_body):
     print(request_body["user"]["id"])
     return "ok", 200
 
+
 ACTION_DICT = {
-    "apphome":{
-        "refresh": apphome.refresh
-    },
+    "apphome": {"refresh": apphome.refresh},
     "vacation_insert": {
         "modal_open_vacation": vacation_insert_service.modal_open,
         "modal_vacation_member_select": None,
@@ -118,7 +117,7 @@ ACTION_DICT = {
         "modal_spread_type_select": spread_service.spread_type_selected,
         "modal_spread_users_select": None,
         "modal_spread_channels_select": None,
-        "insert_event":spread_service.insert_event
+        "insert_event": spread_service.insert_event,
     },
 }
 
@@ -172,15 +171,7 @@ def today_events_post_all():
         )
 
     return
- 
-scheduler.add_cron_scheduler("alert_event", today_events_post_all, hour=9, minute=50)
+
+
+scheduler.add_cron_scheduler("alert_event", today_events_post_all, hour=17, minute=18)
 scheduler.execute()
-
-
-
-
-# 알림
-# 무엇을 알림?
-# 슬랙의 특정 사용자에 대한 일정을 알림!
-# 애매해서 우선 순위를 뒤로 두자
-# @app.route('/calendar/alert')

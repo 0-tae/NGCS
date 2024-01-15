@@ -5,14 +5,6 @@ import json
 
 HEADER = sb_info.get_header()
 
-def post_message_user(channel_id, user_id, text, blocks):
-    data = {"channel": channel_id, "text": text, "blocks": blocks}
-    response = requests.post(
-        "https://slack.com/api/chat.postEphemeral", headers=HEADER, json=data
-    )
-
-    return response
-
 
 # 슬랙 채널에 메세지 보내기
 def post_message(channel_id, text, blocks):
@@ -40,7 +32,7 @@ def modal_update(view, view_id, response_action):
     response = requests.post(
         "https://slack.com/api/views.update", headers=HEADER, json=data
     )
-    print(util.json_prettier(response.json()))
+
     return response.text
 
 
@@ -49,7 +41,7 @@ def app_home_publish(user_id, view):
     response = requests.post(
         "https://slack.com/api/views.publish", headers=HEADER, json=data
     )
-    
+
     return response.text
 
 

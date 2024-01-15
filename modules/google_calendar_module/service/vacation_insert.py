@@ -2,10 +2,11 @@ import slackbot_module.slackbot_api as slackAPI
 import slackbot_module.slackbot_utils as util
 from views.modal.modal_manager import modal_manager
 from google_calendar_api import calendarAPI
-from datetime import datetime 
+from datetime import datetime
 
 SERVICE_DOMAIN = "vacation"
 ACTION_GROUP = "vacation_insert"
+
 
 class VacationInsertService:
     def modal_vacation_submit(self, request_body):
@@ -27,7 +28,9 @@ class VacationInsertService:
         if request == None:
             return {
                 "response_action": "update",
-                "view": modal_manager.get_modal_object_by_name(modal_name=ACTION_GROUP).get_modal(),
+                "view": modal_manager.get_modal_object_by_name(
+                    modal_name=ACTION_GROUP
+                ).get_modal(),
             }, 200
 
         # 캘린더에 업데이트
@@ -35,7 +38,7 @@ class VacationInsertService:
         # event_spread.spread()
 
         return {"response_action": "clear"}, 200
-    
+
     def vacation_type_selected(self, request_body):
         # +기호 이슈로 인한 디코딩 코드 추가
         view = util.UTFToKoreanJSON(request_body["view"])
@@ -46,29 +49,37 @@ class VacationInsertService:
         action_id = occured_action["action_id"]
         block_id = occured_action["block_id"]
 
-        selected_option = view["state"]["values"][block_id][action_id]["selected_option"]
+        selected_option = view["state"]["values"][block_id][action_id][
+            "selected_option"
+        ]
 
         vacation_type = selected_option["value"]
 
-        modal_object = modal_manager.get_modal_object_by_name(modal_name=ACTION_GROUP, cache_id=user_id)
+        modal_object = modal_manager.get_modal_object_by_name(
+            modal_name=ACTION_GROUP, cache_id=user_id
+        )
         updated_view = modal_object.update_modal(
             original_view=view, vacation_type=vacation_type
         )
 
-        response = slackAPI.modal_update(view=updated_view, view_id=view_id, response_action="update")
+        response = slackAPI.modal_update(
+            view=updated_view, view_id=view_id, response_action="update"
+        )
 
         return response
-    
+
     def modal_open(self, request_body):
         trigger_id = request_body["trigger_id"]
         user_id = request_body["user"]["id"]
 
-        modal = modal_manager.get_modal_by_name(modal_name=ACTION_GROUP, cache_id=user_id)
+        modal = modal_manager.get_modal_by_name(
+            modal_name=ACTION_GROUP, cache_id=user_id
+        )
         response = slackAPI.modal_open(view=modal, trigger_id=trigger_id)
-        
+
         return response
-    
-    def make_google_calendar_api_vacation_insert_request(self,data):
+
+    def make_google_calendar_api_vacation_insert_request(self, data):
         request = dict()
 
         # google_calendar api 표준 : Dict {summary, start, end, all-day}
@@ -76,12 +87,13 @@ class VacationInsertService:
         end_time = data.get(f"{ACTION_GROUP}-modal_vacation_end_time")
         start_date = data.get(f"{ACTION_GROUP}-modal_vacation_start_date")
         end_date = data.get(f"{ACTION_GROUP}-modal_vacation_end_date")
-        vacation_type = data.get(f"{ACTION_GROUP}-modal_vacation_type_select")
+        vacation_type_option = data.get(f"{ACTION_GROUP}-modal_vacation_type_select")
         selected_user = data.get(f"{ACTION_GROUP}-modal_vacation_member_select")
         requested_user = data.get("requested_user_id")
 
+        vacation_type = vacation_type_option["text"]["text"]
         # 휴가를 선택하지 않았을 때 예외처리
-        if vacation_type == None:
+        if vacation_type_option == None:
             return None
 
         # 유저가 선택되지 않았다면 신청자 본인
@@ -96,7 +108,7 @@ class VacationInsertService:
                 datetime.strptime(start_date, "%Y-%m-%d"),
                 datetime.strptime(end_date, "%Y-%m-%d"),
             )
-            if vacation_type.get("value") == "연차"
+            if vacation_type == "연차"
             else (
                 datetime.strptime(f"{start_date} {start_time}", "%Y-%m-%d %H:%M"),
                 datetime.strptime(f"{start_date} {end_time}", "%Y-%m-%d %H:%M"),
@@ -116,11 +128,10 @@ class VacationInsertService:
         request["start"] = start
         request["end"] = end
         request["description"] = None  # 사용하지 않음
-        request["all-day"] = True if vacation_type.get("value") == "연차" else False
+        request["all-day"] = True if vacation_type == "연차" else False
 
         return request
-    
-    
+
     def vacation_specify(self, vacation_type, start: datetime):
         AM_START = 9
         PM_START = 12
@@ -132,5 +143,6 @@ class VacationInsertService:
             result = prefix + result
 
         return result
-    
+
+
 vacation_insert_service = VacationInsertService()

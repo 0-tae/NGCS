@@ -10,11 +10,11 @@ WEEKDAY = ["월", "화", "수", "목", "금", "토", "일"]
 SERVICE_DOMAIN = "spread"
 ACTION_GROUP = "event_spread"
 
+
 class EventSpreadService:
-    
-    def __init__(self, __event_holder__ = dict()):
+    def __init__(self, __event_holder__=dict()):
         self.__event_holder__ = __event_holder__
-    
+
     def modal_open(self, request_body):
         trigger_id = request_body["trigger_id"]
         user_id = request_body["user"]["id"]
@@ -26,7 +26,7 @@ class EventSpreadService:
         self.modal_init_spread(view=response["view"], user_id=user_id)
 
         return "ok", 200
-    
+
     def spread(self, data: dict, sender_name, reciever_id):
         summary = data.get("summary")
         time = data.get("time")
@@ -36,7 +36,7 @@ class EventSpreadService:
             sender_name=sender_name,
             summary_text=summary,
             time_text=time,
-            event_id = event_id
+            event_id=event_id,
         )
 
         slackAPI.post_message(
@@ -58,8 +58,10 @@ class EventSpreadService:
                 data[action_id] = util.get_value_from_action(action_dict)
 
         # static_select에서 text부분을 추출
-        summary_with_time = data[f"{ACTION_GROUP}-modal_spread_event_select"]["text"].get("text")
-        
+        summary_with_time = data[f"{ACTION_GROUP}-modal_spread_event_select"][
+            "text"
+        ].get("text")
+
         # static_select에서 value부분을 추출하여 event_id 얻어옴
         event_id = data[f"{ACTION_GROUP}-modal_spread_event_select"].get("value")
 
@@ -102,7 +104,11 @@ class EventSpreadService:
         print(receivers)
         for receiver_id in receivers:
             self.spread(
-                data={"summary": summary_message, "time": time_message,"event_id": event_id},
+                data={
+                    "summary": summary_message,
+                    "time": time_message,
+                    "event_id": event_id,
+                },
                 sender_name=user_name,
                 reciever_id=receiver_id,
             )
@@ -112,29 +118,34 @@ class EventSpreadService:
     # 처음 모달창의 일정 업데이트
     def modal_init_spread(self, view, user_id):
         now = datetime.now()
-        
+
         event_options = tuple(
             map(
                 lambda e: block_builder.create_option(
                     text=f"{e['summary']} ({self.period_specify(e['start'], e['end'], e['all-day'])})",
-                    value = e["id"]),
+                    value=e["id"],
+                ),
                 calendarAPI.get_event_list(
                     user_id=user_id,
                     day_option="today",
                 ),
             )
         )
-        
-        modal_object = modal_manager.get_modal_object_by_name(modal_name=ACTION_GROUP,cache_id=user_id)
-        
+
+        modal_object = modal_manager.get_modal_object_by_name(
+            modal_name=ACTION_GROUP, cache_id=user_id
+        )
+
         modal = modal_object.update_spread_event_modal(
-            original_view=view, date=now.strftime("%Y-%m-%d"), event_options=event_options
+            original_view=view,
+            date=now.strftime("%Y-%m-%d"),
+            event_options=event_options,
         )
 
         response = slackAPI.modal_update(
             view=modal, view_id=view["id"], response_action="update"
         )
-        
+
         return response
 
     # 타입이 선택되면 멤버 혹은 채널에 대한 inputbox가 나옴
@@ -153,12 +164,14 @@ class EventSpreadService:
 
         target_type = selected_option["value"]
 
-        modal_object = modal_manager.get_modal_object_by_name(modal_name=ACTION_GROUP, cache_id=user_id)
+        modal_object = modal_manager.get_modal_object_by_name(
+            modal_name=ACTION_GROUP, cache_id=user_id
+        )
         modal = modal_object.update_spread_member_type_modal(
             original_view=view, selected_type=target_type
         )
-        
-        response=slackAPI.modal_update(
+
+        response = slackAPI.modal_update(
             view=modal, view_id=view_id, response_action="update"
         )
 
@@ -173,12 +186,16 @@ class EventSpreadService:
         block_id = occured_action["block_id"]
 
         # 선택된 이벤트의 아이디를 가져옴
-        selected_event_id = view["state"]["values"][block_id][action_id]["selected_option"]["value"]
-        event = calendarAPI.find_event_by_id(user_id=user_id, event_id=selected_event_id)
-        
+        selected_event_id = view["state"]["values"][block_id][action_id][
+            "selected_option"
+        ]["value"]
+        event = calendarAPI.find_event_by_id(
+            user_id=user_id, event_id=selected_event_id
+        )
+
         # 이벤트 아이디와 이벤트를 딕셔너리에 홀드
-        self.event_hold(event_id = selected_event_id, event=event)
-        
+        self.event_hold(event_id=selected_event_id, event=event)
+
         return "ok", 200
 
     # 일정이 선택되면 해당 일정의 이벤트 리스트를 가져옴
@@ -198,16 +215,19 @@ class EventSpreadService:
             map(
                 lambda e: block_builder.create_option(
                     text=f"{e['summary']} ({self.period_specify(e['start'], e['end'], e['all-day'])})",
-                    value = e["id"]),
+                    value=e["id"],
+                ),
                 calendarAPI.get_event_list(
-                        user_id=user_id,
-                        day_option=datetime.strptime(selected_date, "%Y-%m-%d"),
-                )
+                    user_id=user_id,
+                    day_option=datetime.strptime(selected_date, "%Y-%m-%d"),
+                ),
             )
         )
 
-        modal_object = modal_manager.get_modal_by_name(modal_name=ACTION_GROUP, cache_id=user_id)
-        
+        modal_object = modal_manager.get_modal_by_name(
+            modal_name=ACTION_GROUP, cache_id=user_id
+        )
+
         updated_view = modal_object.update_spread_event_modal(
             original_view=view, date=selected_date, event_options=event_options
         )
@@ -215,34 +235,36 @@ class EventSpreadService:
         response = slackAPI.modal_update(
             view=updated_view, view_id=view_id, response_action="update"
         )
-        
+
         return response
 
     # 미완성
     # 이벤트가 선택되면 발생하는 일
     def insert_event(self, request_body):
         user_id = request_body["user"]["id"]
-        
+
         occured_action = request_body["actions"][0]
         action_id = occured_action["action_id"]
         event_id = occured_action["value"]
         event = self.get_holding_event_by_id(event_id=event_id)
-        
+
         # 만약 가져온 이벤트가 없다면, 예외처리
         if not event:
             return None
-        
+
         # event_request = Dict {summary, start(datetime), end(datetime), all-day}
-        calendarAPI.insert_event(event_request={
-            "summary" : event.get("summary"),
-            "description": event.get("description"),
-            "start" : datetime.fromisoformat(event.get("start")),
-            "end" : datetime.fromisoformat(event.get("end")),
-            "all-day" : event.get("all-day"),
-        })
-        
+        calendarAPI.insert_event(
+            event_request={
+                "summary": event.get("summary"),
+                "description": event.get("description"),
+                "start": datetime.fromisoformat(event.get("start")),
+                "end": datetime.fromisoformat(event.get("end")),
+                "all-day": event.get("all-day"),
+            }
+        )
+
         return "ok", 200
-    
+
     # 메시지 블록 구성
     def spread_message_block(self, sender_name, summary_text, time_text, event_id):
         return block_builder.compose(
@@ -260,7 +282,7 @@ class EventSpreadService:
                         block_builder.create_button(
                             text="내 캘린더에 추가하기",
                             action_id=f"{ACTION_GROUP}-insert_event",
-                            value=event_id
+                            value=event_id,
                         ),
                     )
                 ),
@@ -286,22 +308,23 @@ class EventSpreadService:
 
         gap = start_datetime - end_datetime
         return "하루 종일" if gap.days == 0 else f"{start} ~ {end}"
-    
+
     # event_holder 관련 함수들
     def get_event_holder(self) -> dict:
         return self.__event_holder__
-    
+
     def has_event(self, event_id):
         return event_id != None and self.get_event_holder().get(event_id) != None
-    
+
     def get_holding_event_by_id(self, event_id):
         return self.get_event_holder().get(event_id)
-    
+
     def event_hold(self, event_id, event):
         self.get_event_holder().update({event_id: event})
-        
+
     def event_release(self, event_id):
         if self.has_event(event_id):
             return self.get_event_holder().pop(event_id)
+
 
 spread_service = EventSpreadService()
