@@ -114,7 +114,7 @@ ACTION_DICT = {
         "modal_open_spread": spread_service.modal_open,
         "modal_submit_spread": spread_service.modal_spread_submit,
         "modal_spread_date_select": spread_service.spread_date_selected,
-        "modal_spread_event_select": None,
+        "modal_spread_event_select": spread_service.spread_event_selected,
         "modal_spread_type_select": spread_service.spread_type_selected,
         "modal_spread_users_select": None,
         "modal_spread_channels_select": None,

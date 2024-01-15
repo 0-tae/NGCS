@@ -12,6 +12,9 @@ ACTION_GROUP = "event_spread"
 
 class EventSpreadService:
     
+    def __init__(self, __event_holder__ = dict()):
+        self.__event_holder__ = __event_holder__
+    
     def modal_open(self, request_body):
         trigger_id = request_body["trigger_id"]
         user_id = request_body["user"]["id"]
@@ -54,13 +57,14 @@ class EventSpreadService:
             for action_id, action_dict in block.items():
                 data[action_id] = util.get_value_from_action(action_dict)
 
-        # static_select에서 text부분
+        # static_select에서 text부분을 추출
         summary_with_time = data[f"{ACTION_GROUP}-modal_spread_event_select"]["text"].get("text")
         
+        # static_select에서 value부분을 추출하여 event_id 얻어옴
         event_id = data[f"{ACTION_GROUP}-modal_spread_event_select"].get("value")
 
         if not summary_with_time:
-            return "please select your event", 405
+            return "event_not_selected", 405
 
         # 일정 (19:00 ~ 18:00)
         # 일정
@@ -160,6 +164,23 @@ class EventSpreadService:
 
         return response
 
+    def spread_event_selected(self, request_body):
+        view = util.UTFToKoreanJSON(request_body["view"])
+        user_id = request_body["user"]["id"]
+
+        occured_action = request_body["actions"][0]
+        action_id = occured_action["action_id"]
+        block_id = occured_action["block_id"]
+
+        # 선택된 이벤트의 아이디를 가져옴
+        selected_event_id = view["state"]["values"][block_id][action_id]["selected_option"]["value"]
+        event = calendarAPI.find_event_by_id(user_id=user_id, event_id=selected_event_id)
+        
+        # 이벤트 아이디와 이벤트를 딕셔너리에 홀드
+        self.event_hold(event_id = selected_event_id, event=event)
+        
+        return "ok", 200
+
     # 일정이 선택되면 해당 일정의 이벤트 리스트를 가져옴
     def spread_date_selected(self, request_body):
         view = util.UTFToKoreanJSON(request_body["view"])
@@ -202,14 +223,23 @@ class EventSpreadService:
     def insert_event(self, request_body):
         user_id = request_body["user"]["id"]
         
-        print(util.json_prettier(request_body))
-        
         occured_action = request_body["actions"][0]
         action_id = occured_action["action_id"]
-        event = occured_action["value"]
-        print(event)
-        # event_request = Dict {summary, start, end, all-day}
-        calendarAPI.insert_event()
+        event_id = occured_action["value"]
+        event = self.get_holding_event_by_id(event_id=event_id)
+        
+        # 만약 가져온 이벤트가 없다면, 예외처리
+        if not event:
+            return None
+        
+        # event_request = Dict {summary, start(datetime), end(datetime), all-day}
+        calendarAPI.insert_event(event_request={
+            "summary" : event.get("summary"),
+            "description": event.get("description"),
+            "start" : datetime.fromisoformat(event.get("start")),
+            "end" : datetime.fromisoformat(event.get("end")),
+            "all-day" : event.get("all-day"),
+        })
         
         return "ok", 200
     
@@ -256,5 +286,22 @@ class EventSpreadService:
 
         gap = start_datetime - end_datetime
         return "하루 종일" if gap.days == 0 else f"{start} ~ {end}"
+    
+    # event_holder 관련 함수들
+    def get_event_holder(self) -> dict:
+        return self.__event_holder__
+    
+    def has_event(self, event_id):
+        return event_id != None and self.get_event_holder().get(event_id) != None
+    
+    def get_holding_event_by_id(self, event_id):
+        return self.get_event_holder().get(event_id)
+    
+    def event_hold(self, event_id, event):
+        self.get_event_holder().update({event_id: event})
+        
+    def event_release(self, event_id):
+        if self.has_event(event_id):
+            return self.get_event_holder().pop(event_id)
 
 spread_service = EventSpreadService()

@@ -128,7 +128,7 @@ class CalendarSpreadModalObject(ModalObject):
         member_input = block_builder.create_input_multi_users_select(
             label="멤버에게 전파",  # line_5_actions_changable default
             placeholder_text="멤버 선택",
-            action_id=self.action_id("-modal_spread_users_select"),
+            action_id=self.action_id("modal_spread_users_select"),
         )
 
         # type이 채널일 경우 해당 블록을 적용

@@ -149,7 +149,7 @@ class GoogleCalendarAPI:
     # 캘린더에서 일정 수정
 
     # 캘린더에 일정 등록
-    # event_request = Dict {summary, start, end, all-day}
+    # event_request = Dict {summary, start(datetime), end(datetime), all-day}
     def insert_event(self, event_request):
         body = self.event_request_convert(event_request=event_request)
         events_result = (
@@ -164,7 +164,7 @@ class GoogleCalendarAPI:
         body = {
             "summary": event_request["summary"],  # 일정 제목
             "location": None,  # 일정 장소
-            "description": event_request["description"],  # 일정 설명
+            "description": event_request.get("description"),  # 일정 설명
             "start": {  # 시작 날짜
                 "dateTime": event_request["start"].isoformat(),
                 "timeZone": "Asia/Seoul",
@@ -223,7 +223,7 @@ class GoogleCalendarAPI:
 
         event = (
             self.__instance__.events()
-            .list(calendarId="primary", eventId=event_id)
+            .get(calendarId="primary", eventId=event_id)
             .execute()
         )
 
