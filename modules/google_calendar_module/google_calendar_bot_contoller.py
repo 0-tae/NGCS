@@ -128,7 +128,7 @@ def today_events_post_all():
 
     for user in users:
         user_id = user["user_id"]
-        user_name = get_user_name(user_id)
+        user_name = util.get_user_name(user_id)
         common_event_list = calendarAPI.get_common_event_list(user_id=user_id)
         vacation_list = calendarAPI.get_vacation_list(user_id=user_id)
 
@@ -173,5 +173,5 @@ def today_events_post_all():
     return
 
 
-scheduler.add_cron_scheduler("alert_event", today_events_post_all, hour=17, minute=18)
+scheduler.add_cron_scheduler("alert_event", today_events_post_all, hour=17, minute=30)
 scheduler.execute()

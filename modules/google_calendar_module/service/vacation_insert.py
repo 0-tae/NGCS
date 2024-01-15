@@ -34,7 +34,7 @@ class VacationInsertService:
             }, 200
 
         # 캘린더에 업데이트
-        calendarAPI.insert_event(event_request=request)
+        calendarAPI.insert_event(event_request=request, user_id=user_id)
         # event_spread.spread()
 
         return {"response_action": "clear"}, 200

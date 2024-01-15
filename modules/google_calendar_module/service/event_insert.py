@@ -7,10 +7,12 @@ from datetime import datetime
 SERVICE_DOMAIN = "event"
 ACTION_GROUP = "event_insert"
 
+
 class EventInsertService:
     def modal_event_submit(self, request_body):
         view = util.UTFToKoreanJSON(request_body["view"])
         view_id = view["id"]
+        user_id = request_body["user"]["id"]
 
         data = dict()
 
@@ -21,10 +23,10 @@ class EventInsertService:
         request = self.make_google_calendar_api_event_insert_request(data=data)
 
         # 캘린더에 업데이트
-        calendarAPI.insert_event(event_request=request)
+        calendarAPI.insert_event(event_request=request, user_id=user_id)
 
         return {"response_action": "clear"}, 200
-    
+
     def allday_changed(self, request_body):
         # +기호 이슈로 인한 디코딩 코드 추가
         view = util.UTFToKoreanJSON(request_body["view"])
@@ -35,30 +37,37 @@ class EventInsertService:
         block_id = occured_action["block_id"]
         user_id = request_body["user"]["id"]
 
-        selected_checkbox = view["state"]["values"][block_id][action_id]["selected_options"]
+        selected_checkbox = view["state"]["values"][block_id][action_id][
+            "selected_options"
+        ]
 
         # 선택된 체크박스의 갯수가 1개 이상이면 all-day
         all_day = True if len(selected_checkbox) > 0 else False
 
         # "event" 모달을 가져옴, 모달의 캐시 아이디는 user_id로 함
-        modal_object = modal_manager.get_modal_object_by_name("event", cache_id=user_id)
-        
+        modal_object = modal_manager.get_modal_object_by_name(
+            ACTION_GROUP, cache_id=user_id
+        )
+
         modal = modal_object.update_modal(original_view=view, all_day=all_day)
 
-        response = slackAPI.modal_update(view=modal, view_id=view_id, response_action="update")
+        response = slackAPI.modal_update(
+            view=modal, view_id=view_id, response_action="update"
+        )
 
         return response
-    
-    
+
     def modal_open(self, request_body):
         trigger_id = request_body["trigger_id"]
         user_id = request_body["user"]["id"]
 
-        modal = modal_manager.get_modal_by_name(modal_name=ACTION_GROUP, cache_id=user_id)
+        modal = modal_manager.get_modal_by_name(
+            modal_name=ACTION_GROUP, cache_id=user_id
+        )
         response = slackAPI.modal_open(view=modal, trigger_id=trigger_id)
 
         return response
-    
+
     def make_google_calendar_api_event_insert_request(self, data):
         request = dict()
 
@@ -69,7 +78,9 @@ class EventInsertService:
 
         summary = data.get(f"{ACTION_GROUP}-modal_event_summary")
         description = data.get(f"{ACTION_GROUP}-modal_event_description")
-        all_day = True if len(data.get(f"{ACTION_GROUP}-modal_event_allday")) > 0 else False
+        all_day = (
+            True if len(data.get(f"{ACTION_GROUP}-modal_event_allday")) > 0 else False
+        )
 
         # 2023-01-09
         # 연차일 경우는 date, 이외는 dateTime
@@ -93,5 +104,6 @@ class EventInsertService:
         request["all-day"] = all_day
 
         return request
-    
+
+
 event_insert_service = EventInsertService()

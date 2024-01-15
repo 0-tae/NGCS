@@ -189,6 +189,10 @@ class EventSpreadService:
         selected_event_id = view["state"]["values"][block_id][action_id][
             "selected_option"
         ]["value"]
+
+        if selected_event_id == "오늘 일정 없음":
+            return "no events", 200
+
         event = calendarAPI.find_event_by_id(
             user_id=user_id, event_id=selected_event_id
         )
@@ -224,7 +228,7 @@ class EventSpreadService:
             )
         )
 
-        modal_object = modal_manager.get_modal_by_name(
+        modal_object = modal_manager.get_modal_object_by_name(
             modal_name=ACTION_GROUP, cache_id=user_id
         )
 
@@ -250,7 +254,7 @@ class EventSpreadService:
 
         # 만약 가져온 이벤트가 없다면, 예외처리
         if not event:
-            return None
+            return "event_not_found", 404
 
         # event_request = Dict {summary, start(datetime), end(datetime), all-day}
         calendarAPI.insert_event(
@@ -260,7 +264,8 @@ class EventSpreadService:
                 "start": datetime.fromisoformat(event.get("start")),
                 "end": datetime.fromisoformat(event.get("end")),
                 "all-day": event.get("all-day"),
-            }
+            },
+            user_id=user_id,
         )
 
         return "ok", 200

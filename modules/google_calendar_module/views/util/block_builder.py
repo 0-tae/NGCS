@@ -1,5 +1,6 @@
 from datetime import datetime
 
+
 # Slack Block-kit 문법에 맞는 Block Component 추가용 클래스
 class BlockBuilder:
     def create_block_header(self, text):
@@ -127,7 +128,7 @@ class BlockBuilder:
             "action_id": action_id,
         }
 
-    def create_option(self, text, value = None):
+    def create_option(self, text, value=None):
         return {
             "text": {"type": "plain_text", "text": text, "emoji": True},
             "value": text if not value else value,
@@ -135,11 +136,10 @@ class BlockBuilder:
 
     def create_static_select(self, placeholder_text, action_id, options):
         option_list = []
-
         for option in options:
             if not option.get("text") or not option.get("value"):
                 raise ValueError("option이 형식을 충족하지 않음(create_static_select)")
-            
+
             option_list.append(option)
 
         return {

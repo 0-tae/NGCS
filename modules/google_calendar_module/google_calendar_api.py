@@ -16,12 +16,17 @@ HOST = sb_info.get_host()
 
 
 class GoogleCalendarAPI:
-    
-    def __init__(self, __instance__= None, __access_users__ = dict(), __temp_user__=None, __temp_state__=None):
-        self.__instance__ =__instance__
+    def __init__(
+        self,
+        __instance__=None,
+        __access_users__=dict(),
+        __temp_user__=None,
+        __temp_state__=None,
+    ):
+        self.__instance__ = __instance__
         self.__access_users__ = __access_users__
-        self.__temp_user__ =__temp_user__
-        self.__temp_state__ =__temp_state__
+        self.__temp_user__ = __temp_user__
+        self.__temp_state__ = __temp_state__
 
     # 버튼 -> google 로그인 -> redirect 로 인한 user_id 정보 손실 방지 임시 방편
     def set_temp_state(self, state):
@@ -150,7 +155,8 @@ class GoogleCalendarAPI:
 
     # 캘린더에 일정 등록
     # event_request = Dict {summary, start(datetime), end(datetime), all-day}
-    def insert_event(self, event_request):
+    def insert_event(self, event_request, user_id):
+        self.set_api_user(user_id)
         body = self.event_request_convert(event_request=event_request)
         events_result = (
             self.__instance__.events().insert(calendarId="primary", body=body).execute()
@@ -248,7 +254,11 @@ class GoogleCalendarAPI:
             year=selected_date.year, month=selected_date.month, day=selected_date.day
         ).astimezone(SEOUL_TIMEZONE)
         time_max = datetime(
-            year=time_min.year, month=time_min.month, day=time_min.day + 1
+            year=time_min.year,
+            month=time_min.month,
+            day=time_min.day,
+            hour=23,
+            minute=59,
         ).astimezone(SEOUL_TIMEZONE)
 
         print(f"TIME: {time_min} ~ {time_max}")
