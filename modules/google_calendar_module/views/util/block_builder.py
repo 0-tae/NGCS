@@ -137,7 +137,7 @@ class BlockBuilder:
     def create_static_select(self, placeholder_text, action_id, options):
         option_list = []
         for option in options:
-            if not option.get("text") or not option.get("value"):
+            if type(option) == str or not option.get("text") or not option.get("value"):
                 raise ValueError("option이 형식을 충족하지 않음(create_static_select)")
 
             option_list.append(option)

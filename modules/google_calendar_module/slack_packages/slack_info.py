@@ -1,4 +1,4 @@
-import slackbot_module.slackbot_api as slackAPI
+import slack_packages.slack_api as slackAPI
 import time
 import json
 import os

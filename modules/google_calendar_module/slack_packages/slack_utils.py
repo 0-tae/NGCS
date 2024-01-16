@@ -1,5 +1,6 @@
 import json
-import slackbot_module.slackbot_info as slackInfo
+import slack_packages.slack_info as slackInfo
+
 
 def get_user_name(user_id):
     return slackInfo.get_user_info(user_id, "real_name")
@@ -13,6 +14,7 @@ def UTFToKoreanJSON(data):
     converted_data = json.dumps(data).replace("+", " ")
     return json.loads(converted_data)
 
+
 def get_dictionary_value_for_depth(keys, dictionary, current_depth):
     if dictionary.get(keys[current_depth]) == None:
         return None
@@ -23,6 +25,7 @@ def get_dictionary_value_for_depth(keys, dictionary, current_depth):
         return current_dictionary
 
     return get_dictionary_value_for_depth(keys, current_dictionary, current_depth + 1)
+
 
 def get_value_from_action(action_dict):
     action_type_dict = {
@@ -45,6 +48,7 @@ def get_value_from_action(action_dict):
     )
 
     return value
+
 
 def json_prettier(data):
     return json.dumps(data, indent=4, separators=(",", ":"), sort_keys=True)

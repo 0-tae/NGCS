@@ -2,10 +2,11 @@ from datetime import datetime
 import os.path
 import pytz
 import json
-import slackbot_module.slackbot_info as sb_info
+import slack_packages.slack_info as sb_info
 from requests_oauthlib import OAuth2Session
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
+from googleapiclient.errors import HttpError
 from googleapiclient.discovery import build
 
 # If modifying these scopes, delete the file token.json.
@@ -53,8 +54,9 @@ class GoogleCalendarAPI:
                 f"{PREFIX}/{user_id}-token.json", SCOPES
             )
 
-        if current_creds == None:
+        if not current_creds:
             return None
+
         # If there are no (valid) credentials available, let the user log in.
         if not current_creds.valid:
             if current_creds and current_creds.expired and current_creds.refresh_token:
@@ -140,18 +142,13 @@ class GoogleCalendarAPI:
         self.__instance__ = build("calendar", "v3", credentials=creds)
 
     # user_id를 기반으로 token 파일을 찾고 credential을 가져온 뒤, api_instance에 적용되는 credential을 교체함
-    # creds가 반환이 안되었다면... 아직까진 답이 없음
     def set_api_user(self, user_id):
         creds = self.get_credentials(user_id=user_id)
 
         if creds == None:
-            raise ValueError("유저에 대한 토큰이 존재하지 않음")
+            raise ValueError(f"유저에 대한 토큰이 존재하지 않음: {user_id}")
 
         self.set_instance(creds=creds)
-
-    # 캘린더에서 일정을 삭제(shortcut), 우선순위 나중
-
-    # 캘린더에서 일정 수정
 
     # 캘린더에 일정 등록
     # event_request = Dict {summary, start(datetime), end(datetime), all-day}
@@ -188,13 +185,6 @@ class GoogleCalendarAPI:
 
         return body
 
-    # 기타 function
-    # 오전 오후 시간분석
-    def is_AM_range(self, time: datetime):
-        am_start_time = 9
-        pm_start_time = 12
-        return am_start_time < time.hour < pm_start_time
-
     # 휴가 여부 분석(출력 방식이 다름)
     def is_vacation(self, summary):
         vacation_type = ["반차", "연차"]
@@ -202,7 +192,7 @@ class GoogleCalendarAPI:
 
     # 캘린더에서 휴가 받아오기
     # 일정에서 휴가만 필터링 하는 방식
-    # option : 일별, 월별
+    # day-option = date
     def get_vacation_list(self, user_id, day_option="today"):
         result = list(
             filter(
@@ -214,7 +204,7 @@ class GoogleCalendarAPI:
 
     # 캘린더에서 일반 일정 받아오기
     # 일정에서 휴가만 필터링 하는 방식
-    # option : 일별, 월별
+    # day-option = date
     def get_common_event_list(self, user_id, day_option="today"):
         result = list(
             filter(
@@ -227,13 +217,13 @@ class GoogleCalendarAPI:
     def find_event_by_id(self, user_id, event_id):
         self.set_api_user(user_id)
 
-        event = (
-            self.__instance__.events()
-            .get(calendarId="primary", eventId=event_id)
-            .execute()
-        )
-
-        if not event:
+        try:
+            event = (
+                self.__instance__.events()
+                .get(calendarId="primary", eventId=event_id)
+                .execute()
+            )
+        except HttpError:
             return None
 
         return self.make_response(event=event)

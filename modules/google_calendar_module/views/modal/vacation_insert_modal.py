@@ -5,14 +5,16 @@ from datetime import datetime
 
 ACTION_GROUP = "vacation_insert"
 
+
 class CalendarVacationModalObject(ModalObject):
     # 템플릿 매니저에 모달 뷰 템플릿을 정의
-    def __init__(self,
-                 __modal_name__ = ACTION_GROUP, 
-                 __modal__ = None, 
-                 __modal_title__ = "휴가 등록하기",
-                 __callback_id__ = f"{ACTION_GROUP}-modal_submit_vacation"):
-        
+    def __init__(
+        self,
+        __modal_name__=ACTION_GROUP,
+        __modal__=None,
+        __modal_title__="휴가 등록하기",
+        __callback_id__=f"{ACTION_GROUP}-modal_submit_vacation",
+    ):
         super().__init__(__modal_name__, __modal__, __modal_title__, __callback_id__)
         template_manager.add_view_template(
             ACTION_GROUP,
@@ -40,14 +42,16 @@ class CalendarVacationModalObject(ModalObject):
                 actions=(
                     block_builder.create_user_select(
                         "멤버 선택(미선택 시, 본인)",
-                        f"{ACTION_GROUP}-modal_vacation_member_select",
+                        self.action_id("modal_vacation_member_select"),
                     ),
                     block_builder.create_static_select(
                         placeholder_text="휴가 선택",
-                        action_id=f"{ACTION_GROUP}-modal_vacation_type_select",
-                        options=(block_builder.create_option("연차"),
-                                 block_builder.create_option("시간 연차"),
-                                    block_builder.create_option("반차"),)
+                        action_id=self.action_id("modal_vacation_type_select"),
+                        options=(
+                            block_builder.create_option("연차"),
+                            block_builder.create_option("시간 연차"),
+                            block_builder.create_option("반차"),
+                        ),
                     ),
                 )
             ),
@@ -56,15 +60,15 @@ class CalendarVacationModalObject(ModalObject):
         # base_view에 template에 쓰여진 blocks를 적용
         # base_view의 private_metadata를 통해 캐시를 등록
         # template_cache_id는 현재 인스턴스 주소 값의 일부
-        modal =  template_manager.apply_template(
+        modal = template_manager.apply_template(
             view=self.get_modal(),
             template=template,
-            cache_id=self.get_modal()["private_metadata"]
+            cache_id=self.get_modal()["private_metadata"],
         )
-        
+
         # 현재 인스턴스의 modal을 변경
         self.set_modal(modal)
-        
+
         return modal
 
     def update_modal(self, original_view, vacation_type):
@@ -101,17 +105,17 @@ class CalendarVacationModalObject(ModalObject):
         # base_view에 template에 쓰여진 blocks를 적용
         # base_view의 private_metadata를 통해 캐시를 등록
         # template_cache_id는 현재 인스턴스 주소 값의 일부
-        modal =  template_manager.apply_template(
+        modal = template_manager.apply_template(
             view=self.get_modal(),
             template=updated_template,
-            cache_id=self.get_modal()["private_metadata"]
+            cache_id=self.get_modal()["private_metadata"],
         )
-        
+
         # 현재 인스턴스의 modal을 변경
         self.set_modal(modal)
-        
+
         return modal
-    
+
     # Custom Block
     def create_time_block(self):
         return block_builder.create_actions(
@@ -124,7 +128,7 @@ class CalendarVacationModalObject(ModalObject):
                 ),
             )
         )
-        
+
     def create_date_block(self):
         return block_builder.create_actions(
             actions=(
@@ -145,6 +149,6 @@ class CalendarVacationModalObject(ModalObject):
                 ),
             ),
         )
-        
+
     def action_id(self, action_type):
         return f"{ACTION_GROUP}-{action_type}"

@@ -1,9 +1,16 @@
 import requests
-import slackbot_module.slackbot_info as sb_info
-import slackbot_module.slackbot_utils as util
+import slack_packages.slack_info as sb_info
+import slack_packages.slack_utils as util
 import json
 
 HEADER = sb_info.get_header()
+
+
+def oauth_v2_access(code, client_id, client_secret):
+    data = {"code": code, "client_id": client_id, "client_secret": client_secret}
+    response = requests.post("https://slack.com/api/oauth.v2.access", data=data)
+
+    return response.text
 
 
 # 슬랙 채널에 메세지 보내기

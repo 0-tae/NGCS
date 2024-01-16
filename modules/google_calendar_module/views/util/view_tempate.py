@@ -1,5 +1,5 @@
 class ViewTemplate:
-    def __init__(self, __template_name__, __template__):
+    def __init__(self, __template_name__, __template__: dict):
         self.__template_name__ = __template_name__
         self.__template__ = __template__  # dict
 
@@ -15,13 +15,13 @@ class ViewTemplate:
                 blocks.append(block)
 
         return blocks
+
     # Issue
     # view.blocks 안의 첫 번째 요소부터, 템플릿에 순서대로 삽입
     # 뷰 업데이트로 인해 블럭의 갯수가 줄어들 경우, Line key의 선형 조회로 인해 블럭이 기존과 다른 라인에 매칭되는 현상
     # 예) Block: B1 B2 B3 B4 B5 , Line: L1 L2 L3 L4 L5 일때,
     # 매칭 결과 : B1(L1) B2(L2) B3(L3) B4(L4) B5(L5)
-    # 만약 업데이트로 인해 B3가 사라질 경우
-    # 초기화된 템플릿으로 인해
+    # 만약 업데이트로 인해 B3가 사라질 경우, 초기화된 템플릿으로 인해
     # B1(B1) B2(L2) B4(L3) B5(L4) none(L5)가 되는 상황
     def convert_view_to_template(self, view):
         blocks = view["blocks"]
@@ -31,7 +31,7 @@ class ViewTemplate:
         block_idx = 0
 
         for line_idx, line in enumerate(template_lines):
-            # 처음 블럭 삽입 떄 None인 Line은 건너 뛰고 다음 Line 탐색
+            # 처음 블럭 삽입 때, None인 Line은 건너 뛰고 다음 Line 탐색
             # 단, 블럭의 갯수와 라인의 갯수가 일치하면, None 자리에 삽입
             if (line_idx != block_idx) and line == None:
                 unmatched_line.append(line)

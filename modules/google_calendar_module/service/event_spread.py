@@ -1,5 +1,5 @@
-import slackbot_module.slackbot_api as slackAPI
-import slackbot_module.slackbot_utils as util
+import slack_packages.slack_api as slackAPI
+import slack_packages.slack_utils as util
 from google_calendar_api import calendarAPI
 from views.util.block_builder import block_builder
 from views.modal.modal_manager import modal_manager
@@ -190,8 +190,8 @@ class EventSpreadService:
             "selected_option"
         ]["value"]
 
-        if selected_event_id == "오늘 일정 없음":
-            return "no events", 200
+        if selected_event_id == "non-event":
+            return "non-event", 200
 
         event = calendarAPI.find_event_by_id(
             user_id=user_id, event_id=selected_event_id
@@ -242,8 +242,7 @@ class EventSpreadService:
 
         return response
 
-    # 미완성
-    # 이벤트가 선택되면 발생하는 일
+    # 이벤트를 내 캘린더에 추가하기
     def insert_event(self, request_body):
         user_id = request_body["user"]["id"]
 
@@ -290,7 +289,9 @@ class EventSpreadService:
                             value=event_id,
                         ),
                     )
-                ),
+                )
+                if event_id != "non-event"
+                else block_builder.create_single_block_section(""),
             )
         )
 

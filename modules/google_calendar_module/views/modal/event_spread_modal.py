@@ -7,7 +7,6 @@ ACTION_GROUP = "event_spread"
 
 
 class CalendarSpreadModalObject(ModalObject):
-    # 템플릿 매니저에 모달 뷰 템플릿을 정의
     def __init__(
         self,
         __modal_name__=ACTION_GROUP,
@@ -93,7 +92,11 @@ class CalendarSpreadModalObject(ModalObject):
                         options=(
                             event_options
                             if len(event_options) > 0
-                            else (block_builder.create_option("오늘 일정 없음"),)
+                            else (
+                                block_builder.create_option(
+                                    text="일정 없음", value="non-event"
+                                ),
+                            )
                         ),
                         placeholder_text="일정 선택",
                         action_id=self.action_id("modal_spread_event_select"),

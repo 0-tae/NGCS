@@ -1,10 +1,11 @@
-import slackbot_module.slackbot_info as sb_info
-import slackbot_module.slackbot_api as slackAPI
+import slack_packages.slack_info as sb_info
+import slack_packages.slack_api as slackAPI
 from views.util.block_builder import block_builder
 from google_calendar_api import calendarAPI
 import copy
 
 OAUTH_URL = sb_info.get_oauth_url()
+
 
 class AppHomeComponent:
     __base_view__ = None
@@ -49,16 +50,17 @@ class AppHomeComponent:
                 "type": "actions",
                 "elements": [
                     block_builder.create_button(
-                        text = "새로 고침 :arrows_counterclockwise:", action_id="apphome-refresh"
+                        text="새로 고침 :arrows_counterclockwise:",
+                        action_id="apphome-refresh",
                     ),
                     block_builder.create_button(
-                        text = "휴가 등록", action_id="vacation_insert-modal_open_vacation"
+                        text="휴가 등록", action_id="vacation_insert-modal_open_vacation"
                     ),
                     block_builder.create_button(
-                        text = "일정 등록", action_id="event_insert-modal_open_event"
+                        text="일정 등록", action_id="event_insert-modal_open_event"
                     ),
                     block_builder.create_button(
-                        text = "내 일정 전파하기", action_id="event_spread-modal_open_spread"
+                        text="내 일정 전파하기", action_id="event_spread-modal_open_spread"
                     ),
                 ],
             },

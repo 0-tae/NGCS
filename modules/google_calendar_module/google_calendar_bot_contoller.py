@@ -2,15 +2,17 @@ from flask import Flask, request, make_response, render_template, redirect, sess
 from urllib import parse
 import json
 from datetime import datetime
-import slackbot_module.slackbot_api as slackAPI
-import slackbot_module.slackbot_info as slackInfo
-import slackbot_module.slackbot_utils as util
+import slack_packages.slack_api as slackAPI
+import slack_packages.slack_info as slackInfo
+import slack_packages.slack_utils as util
+from slack_packages.slack_auth import slack_auth
 from google_calendar_api import calendarAPI
 from google_calendar_apphome import apphome
 from scheduler import scheduler
 from service.event_spread import spread_service
 from service.event_insert import event_insert_service
 from service.vacation_insert import vacation_insert_service
+import service.invite as invite_service
 
 # 맨 아래에 임의로 구현한 곳에서 사용
 from views.util.block_builder import block_builder
@@ -40,20 +42,45 @@ def interactivity_controll():
     return handling_func(request_body)
 
 
-def get_action_info(request_body):
-    action = request_body.get("actions")
-    # view_submission 일 때
-    if not action:
-        callback_id = request_body["view"].get("callback_id").split("-")
-        action_service = callback_id[0]
-        action_type = callback_id[1]
+# # &team_id=T0001
+# &team_domain=example
+# &enterprise_id=E0001
+# &enterprise_name=Globular%20Construct%20Inc
+# &channel_id=C2147483705
+# &channel_name=test
+# &user_id=U2147483697
+# &user_name=Steve
+# &command=/weather
+# &text=94070
+# &response_url=https://hooks.slack.com/commands/1234/5678
+# &trigger_id=13345224609.738474920.8088930838d88f008e0
+# &api_app_id=A123456
+@app.route("/invite", methods=["POST"])
+def invite():
+    data = {
+        d.split("=")[0]: d.split("=")[1]
+        for d in request.get_data(as_text=True).split("&")
+    }
 
-    else:  # 그 이외 action 일 때
-        action_id = action[0].get("action_id").split("-")
-        action_service = action_id[0]
-        action_type = action_id[1]
+    print(data)
+    user_id = data.get("user_id")
+    invite_block = invite_service.get_invite_blocks(user_id)
 
-    return (action_service, action_type)
+    return {"response_type": "in_channel", "blocks": invite_block}
+
+
+@app.route("/api/auth/callback/slack", methods=["GET"])
+def handling_slack_oauth2():
+    response_url = request.url
+    code = request.args.get("code")
+    status = request.args.get("status")
+    client_id = slack_auth.get_client_id()
+    client_secret = slack_auth.get_client_secret()
+    return util.json_prettier(
+        slackAPI.oauth_v2_access(
+            code=code, client_id=client_id, client_secret=client_secret
+        )
+    )
 
 
 # 파라미터로 state, code등의 정보를 가져옴
@@ -84,6 +111,22 @@ def link(request_body):
     calendarAPI.set_temp_user(user_id=request_body["user"]["id"])
     print(request_body["user"]["id"])
     return "ok", 200
+
+
+def get_action_info(request_body):
+    action = request_body.get("actions")
+    # view_submission 일 때
+    if not action:
+        callback_id = request_body["view"].get("callback_id").split("-")
+        action_service = callback_id[0]
+        action_type = callback_id[1]
+
+    else:  # 그 이외 action 일 때
+        action_id = action[0].get("action_id").split("-")
+        action_service = action_id[0]
+        action_type = action_id[1]
+
+    return (action_service, action_type)
 
 
 ACTION_DICT = {
@@ -119,6 +162,7 @@ ACTION_DICT = {
         "modal_spread_channels_select": None,
         "insert_event": spread_service.insert_event,
     },
+    "invite": {"invite": None},
 }
 
 

@@ -1,5 +1,5 @@
-import slackbot_module.slackbot_api as slackAPI
-import slackbot_module.slackbot_utils as util
+import slack_packages.slack_api as slackAPI
+import slack_packages.slack_utils as util
 from google_calendar_api import calendarAPI
 from views.modal.modal_manager import modal_manager
 from datetime import datetime
