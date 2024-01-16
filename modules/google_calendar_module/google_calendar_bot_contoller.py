@@ -62,7 +62,6 @@ def invite():
         for d in request.get_data(as_text=True).split("&")
     }
 
-    print(data)
     user_id = data.get("user_id")
     invite_block = invite_service.get_invite_blocks(user_id)
 
