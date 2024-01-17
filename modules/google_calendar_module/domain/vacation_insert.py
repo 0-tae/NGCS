@@ -1,14 +1,13 @@
-import slack_packages.slack_api as slackAPI
-import slack_packages.slack_utils as util
-from views.modal.modal_manager import modal_manager
-from google_calendar_api import calendarAPI
+import _slack.slack_utils as util
+from _slack.slack_api import slackAPI
+from view.util.modal_manager import modal_manager
+from _google.google_calendar_api import calendarAPI
 from datetime import datetime
 
-SERVICE_DOMAIN = "vacation"
 ACTION_GROUP = "vacation_insert"
 
 
-class VacationInsertService:
+class VacationInsert:
     def modal_vacation_submit(self, request_body):
         # +기호 이슈로 인한 디코딩 코드 추가
         view = util.UTFToKoreanJSON(request_body["view"])
@@ -37,7 +36,7 @@ class VacationInsertService:
         calendarAPI.insert_event(event_request=request, user_id=user_id)
         # event_spread.spread()
 
-        return {"response_action": "clear"}, 200
+        return {"response_action": "clear"}
 
     def vacation_type_selected(self, request_body):
         # +기호 이슈로 인한 디코딩 코드 추가
@@ -66,7 +65,7 @@ class VacationInsertService:
             view=updated_view, view_id=view_id, response_action="update"
         )
 
-        return response
+        return {"ok": True}
 
     def modal_open(self, request_body):
         trigger_id = request_body["trigger_id"]
@@ -77,7 +76,7 @@ class VacationInsertService:
         )
         response = slackAPI.modal_open(view=modal, trigger_id=trigger_id)
 
-        return response
+        return {"ok": True}
 
     def make_google_calendar_api_vacation_insert_request(self, data):
         request = dict()
@@ -136,13 +135,12 @@ class VacationInsertService:
         AM_START = 9
         PM_START = 12
 
-        result = vacation_type
+        prefix = ""
 
         if vacation_type == "반차":
             prefix = "오전 " if start.hour < PM_START else "오후 "
-            result = prefix + result
 
-        return result
+        return prefix + vacation_type
 
 
-vacation_insert_service = VacationInsertService()
+vacation_insert_service = VacationInsert()

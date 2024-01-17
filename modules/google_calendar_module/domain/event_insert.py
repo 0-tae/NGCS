@@ -1,14 +1,14 @@
-import slack_packages.slack_api as slackAPI
-import slack_packages.slack_utils as util
-from google_calendar_api import calendarAPI
-from views.modal.modal_manager import modal_manager
+from _slack.slack_api import slackAPI
+from _google.google_calendar_api import calendarAPI
+import _slack.slack_utils as util
+from view.util.modal_manager import modal_manager
 from datetime import datetime
 
-SERVICE_DOMAIN = "event"
+
 ACTION_GROUP = "event_insert"
 
 
-class EventInsertService:
+class EventInsert:
     def modal_event_submit(self, request_body):
         view = util.UTFToKoreanJSON(request_body["view"])
         view_id = view["id"]
@@ -25,7 +25,7 @@ class EventInsertService:
         # 캘린더에 업데이트
         calendarAPI.insert_event(event_request=request, user_id=user_id)
 
-        return {"response_action": "clear"}, 200
+        return {"response_action": "clear"}
 
     def allday_changed(self, request_body):
         # +기호 이슈로 인한 디코딩 코드 추가
@@ -55,7 +55,7 @@ class EventInsertService:
             view=modal, view_id=view_id, response_action="update"
         )
 
-        return response
+        return {"ok": True}
 
     def modal_open(self, request_body):
         trigger_id = request_body["trigger_id"]
@@ -66,7 +66,7 @@ class EventInsertService:
         )
         response = slackAPI.modal_open(view=modal, trigger_id=trigger_id)
 
-        return response
+        return {"ok": True}
 
     def make_google_calendar_api_event_insert_request(self, data):
         request = dict()
@@ -106,4 +106,4 @@ class EventInsertService:
         return request
 
 
-event_insert_service = EventInsertService()
+event_insert_service = EventInsert()

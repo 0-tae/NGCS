@@ -1,10 +1,10 @@
-import slack_packages.slack_info as sb_info
-import slack_packages.slack_api as slackAPI
-from views.util.block_builder import block_builder
-from google_calendar_api import calendarAPI
+from _slack.slack_api import slackAPI
+from view.util.block_builder import block_builder
+from _google.google_calendar_api import calendarAPI
+from _google.google_auth import google_auth
 import copy
 
-OAUTH_URL = sb_info.get_oauth_url()
+OAUTH_URL = google_auth.get_auth_url()
 
 
 class AppHomeComponent:
@@ -15,7 +15,7 @@ class AppHomeComponent:
 
     def refresh_single_app_home(self, user_id):
         view = None
-        if not calendarAPI.is_certificated(user_id=user_id):
+        if not google_auth.is_certificated(user_id=user_id):
             view = self.get_non_user_view()
         else:
             view = self.get_recently_event_view(user_id)
@@ -25,13 +25,13 @@ class AppHomeComponent:
     def refresh(self, request_body):
         user_id = request_body["user"]["id"]
         apphome.refresh_single_app_home(user_id=user_id)
-        return "ok", 200
+        return {"ok": True}
 
     def init_app_home(self):
-        user_list = sb_info.get_user_list()
+        user_list = slackAPI.get_user_list()
         for user in user_list:
             user_id = user["user_id"]
-            if not calendarAPI.is_certificated(user_id=user_id):
+            if not google_auth.is_certificated(user_id=user_id):
                 init_view = self.get_non_user_view()
             else:
                 init_view = self.get_recently_event_view(user_id)

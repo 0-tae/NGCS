@@ -1,17 +1,15 @@
-import slack_packages.slack_api as slackAPI
-import slack_packages.slack_utils as util
-from google_calendar_api import calendarAPI
-from views.util.block_builder import block_builder
-from views.modal.modal_manager import modal_manager
+import _slack.slack_utils as util
+from _slack.slack_api import slackAPI
+from _google.google_calendar_api import calendarAPI
+from view.util.block_builder import block_builder
+from view.util.modal_manager import modal_manager
 from datetime import datetime
-import json
 
 WEEKDAY = ["월", "화", "수", "목", "금", "토", "일"]
-SERVICE_DOMAIN = "spread"
 ACTION_GROUP = "event_spread"
 
 
-class EventSpreadService:
+class EventSpread:
     def __init__(self, __event_holder__=dict()):
         self.__event_holder__ = __event_holder__
 
@@ -25,7 +23,7 @@ class EventSpreadService:
 
         self.modal_init_spread(view=response["view"], user_id=user_id)
 
-        return "ok", 200
+        return {"ok": True}
 
     def spread(self, data: dict, sender_name, reciever_id):
         summary = data.get("summary")
@@ -66,7 +64,7 @@ class EventSpreadService:
         event_id = data[f"{ACTION_GROUP}-modal_spread_event_select"].get("value")
 
         if not summary_with_time:
-            return "event_not_selected", 405
+            return {"ok": False}
 
         # 일정 (19:00 ~ 18:00)
         # 일정
@@ -113,7 +111,7 @@ class EventSpreadService:
                 reciever_id=receiver_id,
             )
 
-        return {"response_action": "clear"}, 200
+        return {"response_action": "clear"}
 
     # 처음 모달창의 일정 업데이트
     def modal_init_spread(self, view, user_id):
@@ -146,7 +144,7 @@ class EventSpreadService:
             view=modal, view_id=view["id"], response_action="update"
         )
 
-        return response
+        return {"ok": True}
 
     # 타입이 선택되면 멤버 혹은 채널에 대한 inputbox가 나옴
     def spread_type_selected(self, request_body):
@@ -175,7 +173,7 @@ class EventSpreadService:
             view=modal, view_id=view_id, response_action="update"
         )
 
-        return response
+        return {"ok": True}
 
     def spread_event_selected(self, request_body):
         view = util.UTFToKoreanJSON(request_body["view"])
@@ -200,7 +198,7 @@ class EventSpreadService:
         # 이벤트 아이디와 이벤트를 딕셔너리에 홀드
         self.event_hold(event_id=selected_event_id, event=event)
 
-        return "ok", 200
+        return {"ok": True}
 
     # 일정이 선택되면 해당 일정의 이벤트 리스트를 가져옴
     def spread_date_selected(self, request_body):
@@ -240,7 +238,7 @@ class EventSpreadService:
             view=updated_view, view_id=view_id, response_action="update"
         )
 
-        return response
+        return {"ok": True}
 
     # 이벤트를 내 캘린더에 추가하기
     def insert_event(self, request_body):
@@ -253,7 +251,7 @@ class EventSpreadService:
 
         # 만약 가져온 이벤트가 없다면, 예외처리
         if not event:
-            return "event_not_found", 404
+            return {"ok": False}
 
         # event_request = Dict {summary, start(datetime), end(datetime), all-day}
         calendarAPI.insert_event(
@@ -267,7 +265,7 @@ class EventSpreadService:
             user_id=user_id,
         )
 
-        return "ok", 200
+        return {"ok": True}
 
     # 메시지 블록 구성
     def spread_message_block(self, sender_name, summary_text, time_text, event_id):
@@ -333,4 +331,4 @@ class EventSpreadService:
             return self.get_event_holder().pop(event_id)
 
 
-spread_service = EventSpreadService()
+spread_service = EventSpread()

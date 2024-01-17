@@ -1,9 +1,4 @@
-from views.modal.modal import ModalObject
-from views.modal.event_insert_modal import CalendarEventModalObject
-from views.modal.vacation_insert_modal import CalendarVacationModalObject
-from views.modal.event_spread_modal import CalendarSpreadModalObject
-import copy
-
+import copy, os, glob, importlib
 
 CACHE_EXPIRE = 30
 
@@ -15,20 +10,32 @@ class ModalManager:
         self.__modal_dict__ = __modal_dict__
         self.__cache_dict__ = __cache_dict__
 
-        # built_in modals, ModalManager에 이미 등록된 모달
-        self.add_modal_object(CalendarEventModalObject())
-        self.add_modal_object(CalendarVacationModalObject())
-        self.add_modal_object(CalendarSpreadModalObject())
+        # 디렉토리 경로 설정
+        directory_path = "view/modals"  # 실제 디렉토리 경로로 변경
 
-    # 캐시는 고민을 많이 해본 것 같습니다
-    # modal_manager를 쓰는 사용자 입장에서 cache_id는 어떤 것으로 할 것이며
-    # template_manager와 modal_manager의 사용하는 목적과 클래스가 다르니, 각각 어떤 형식으로 cache_id를 사용할 것인지...
+        # 디렉토리 안의 모든 .py 파일을 가져옴
+        module_files = glob.glob(os.path.join(directory_path, "*.py"))
+
+        # .py 확장자를 제거하고 모듈명만 추출
+        module_names = [
+            os.path.splitext(os.path.basename(file))[0] for file in module_files
+        ]
+
+        for module_name in module_names:
+            try:
+                module = importlib.import_module(f"view.modals.{module_name}")
+            except ImportError:
+                print(f"Error: Module '{module_name}' not found.")
+
+    # 캐시를 조회하고 모달을 가져오기
     def get_modal_object_by_name(self, modal_name, cache_id=None):
         modal_object = self.__get_modal_dict__().get(modal_name)
 
         if not modal_object:
-            raise ValueError(f"해당하는 모달이 존재하지 않음 : {modal_name}")
-        print(self.__cache_dict__)
+            raise ValueError(
+                f"해당하는 모달이 존재하지 않음 : {modal_name}, ModalObject를 ModalManager에 등록하세요"
+            )
+
         # 캐싱되어 있는 ModalObject가 있다면 객체를 가져옴
         if self.__has_cache__(cache_id):
             modal_object = self.__get_cache__(cache_id)
@@ -70,7 +77,7 @@ class ModalManager:
         return modal_object.create_modal()
 
     # ModalObject의 초기 객체를 등록
-    def add_modal_object(self, modal: ModalObject):
+    def add_modal_object(self, modal):
         # ex) {"event" : CalendarEventModal()}
         self.__get_modal_dict__().update({modal.get_modal_name(): modal})
 

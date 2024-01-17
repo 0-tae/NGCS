@@ -1,5 +1,3 @@
-import slack_packages.slack_info as sb_info
-import os
 import json
 from datetime import datetime
 
@@ -25,8 +23,8 @@ SCOPES = [
     "users:read.email",
     "users:write",
 ]
-PREFIX = "slack_packages/tokens"
-HOST = sb_info.get_host()
+
+PREFIX = "_slack/tokens"
 
 
 class SlackAuth:
@@ -35,16 +33,31 @@ class SlackAuth:
             self.__credential__ = json.load(file)
 
     def get_client_id(self):
-        return self.__credential__.get("client_id")
+        return self.get_from_credential("client_id")
 
     def get_client_secret(self):
-        return self.__credential__.get("client_secret")
+        return self.get_from_credential("client_secret")
+
+    def get_oauth_url(self):
+        return self.get_from_credential("host") + "/api/auth/slack/invite"
 
     def get_auth_redirection_url(self, user_id):
         scope = ",".join(map(str, SCOPES))
         state = user_id + datetime.now().isoformat()
         client_id = self.get_client_id()
         return f"https://slack.com/oauth/v2/authorize?scope={scope}&client_id={client_id}&state={state}"
+
+    def get_header(self):
+        bot_token = self.get_from_credential("bot_token")
+
+        header = {
+            "Content-Type": "application/json;charset=UTF-8",
+            "Authorization": f"Bearer {bot_token}",
+        }
+        return header
+
+    def get_from_credential(self, key):
+        return self.__credential__[key]
 
 
 slack_auth = SlackAuth()

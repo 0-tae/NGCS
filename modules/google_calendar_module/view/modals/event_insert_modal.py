@@ -1,59 +1,77 @@
-from views.util.block_builder import block_builder
-from views.util.view_template_manager import template_manager
-from views.modal.modal import ModalObject
-from datetime import datetime
+from view.util.block_builder import block_builder
+from view.util.view_template_manager import template_manager
+from view.modals.modal import ModalObject
 
-ACTION_GROUP = "vacation_insert"
+ACTION_GROUP = "event_insert"
 
 
-class CalendarVacationModalObject(ModalObject):
+class CalendarEventModalObject(ModalObject):
     # 템플릿 매니저에 모달 뷰 템플릿을 정의
     def __init__(
         self,
         __modal_name__=ACTION_GROUP,
         __modal__=None,
-        __modal_title__="휴가 등록하기",
-        __callback_id__=f"{ACTION_GROUP}-modal_submit_vacation",
+        __modal_title__="이벤트 및 일정 선택",
+        __callback_id__=f"{ACTION_GROUP}-modal_submit_event",
     ):
         super().__init__(__modal_name__, __modal__, __modal_title__, __callback_id__)
+
         template_manager.add_view_template(
-            ACTION_GROUP,
+            template_name=ACTION_GROUP,
             template_options=(
                 "line_1_header",
                 "line_2_actions",
                 "line_3_header",
                 "line_4_actions",
-                "line_5_actions",
+                "line_5_header_hidable",
+                "line_6_actions_hidable",
+                "line_7_header",
+                "line_8_actions",
             ),
         )
 
-    # 휴가 등록 모달창을 생성함
+        self.register_to_modal_manager(self)
+
+    # 일정 등록 모달창을 생성함
     def create_modal(self):
-        # view template을 설정
         template = template_manager.get_view_template_by_name(ACTION_GROUP)
 
-        template.set_template_line(
-            line="line_1_header",
-            block=block_builder.create_block_header("누가 어떤 휴가를 사용하나요?"),
-        )
-        template.set_template_line(
-            line="line_2_actions",
-            block=block_builder.create_actions(
-                actions=(
-                    block_builder.create_user_select(
-                        "멤버 선택(미선택 시, 본인)",
-                        self.action_id("modal_vacation_member_select"),
-                    ),
-                    block_builder.create_static_select(
-                        placeholder_text="휴가 선택",
-                        action_id=self.action_id("modal_vacation_type_select"),
-                        options=(
-                            block_builder.create_option("연차"),
-                            block_builder.create_option("시간 연차"),
-                            block_builder.create_option("반차"),
+        # template 설정
+        template.set_template_all(
+            blocks=(
+                block_builder.create_block_header("등록할 일정"),
+                block_builder.create_input_text(
+                    action_id=self.action_id("modal_event_summary")
+                ),
+                block_builder.create_block_header("날짜 선택"),
+                block_builder.create_actions(
+                    actions=(
+                        block_builder.create_datepicker(
+                            action_id=self.action_id("modal_event_date")
                         ),
-                    ),
-                )
+                        block_builder.create_checkboxes(
+                            action_id=self.action_id("modal_event_allday"),
+                            options=("하루종일",),
+                        ),
+                    )
+                ),
+                block_builder.create_block_header("시간 선택"),
+                block_builder.create_actions(
+                    actions=(
+                        block_builder.create_timepicker(
+                            action_id=self.action_id("modal_event_start_time"),
+                            init_time="09:00",
+                        ),
+                        block_builder.create_timepicker(
+                            action_id=self.action_id("modal_event_end_time"),
+                            init_time="18:00",
+                        ),
+                    )
+                ),
+                block_builder.create_block_header("상세 내용"),
+                block_builder.create_input_text(
+                    action_id=self.action_id("modal_event_description"), multiline=True
+                ),
             ),
         )
 
@@ -71,35 +89,35 @@ class CalendarVacationModalObject(ModalObject):
 
         return modal
 
-    def update_modal(self, original_view, vacation_type):
-        date_block = self.create_date_block()
-        single_date_block = self.create_single_date_block()
-        time_block = self.create_time_block()
-
-        vacation_dict = {
-            "연차": [date_block, None],
-            "시간 연차": [single_date_block, time_block],
-            "반차": [single_date_block, time_block],
-        }
-
+    def update_modal(self, original_view, all_day):
         # 업데이트할 템플릿을 가져옴
         updated_template = template_manager.get_view_template_by_name(
             template_name=ACTION_GROUP, cache_id=original_view["private_metadata"]
         )
 
-        # 가져온 view를 템플릿에 적용
+        # response view를 템플릿에 적용
         updated_template.convert_view_to_template(view=original_view)
 
-        # view의 line을 수정
         updated_template.set_template_line(
-            line="line_3_header",
-            block=block_builder.create_block_header("휴가 일정을 선택 해주세요 :smile:"),
+            line="line_5_header_hidable",
+            block=None if all_day else block_builder.create_block_header("시간 선택"),
         )
         updated_template.set_template_line(
-            line="line_4_actions", block=vacation_dict.get(vacation_type)[0]
-        )
-        updated_template.set_template_line(
-            line="line_5_actions", block=vacation_dict.get(vacation_type)[1]
+            line="line_6_actions_hidable",
+            block=None
+            if all_day
+            else block_builder.create_actions(
+                actions=(
+                    block_builder.create_timepicker(
+                        action_id=self.action_id("modal_event_start_time"),
+                        init_time="09:00",
+                    ),
+                    block_builder.create_timepicker(
+                        action_id=self.action_id("modal_event_end_time"),
+                        init_time="18:00",
+                    ),
+                )
+            ),
         )
 
         # base_view에 template에 쓰여진 blocks를 적용
@@ -116,7 +134,7 @@ class CalendarVacationModalObject(ModalObject):
 
         return modal
 
-    # Custom Block
+    # 이 밑은 Custom Blocks
     def create_time_block(self):
         return block_builder.create_actions(
             actions=(

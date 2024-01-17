@@ -1,9 +1,9 @@
 import json
-import slack_packages.slack_info as slackInfo
+from _slack.slack_api import slackAPI
 
 
 def get_user_name(user_id):
-    return slackInfo.get_user_info(user_id, "real_name")
+    return slackAPI.get_user_info(user_id, "real_name")
 
 
 def UTFToKorean(text):

@@ -1,6 +1,6 @@
-from views.util.block_builder import block_builder
-from views.util.view_template_manager import template_manager
-from views.modal.modal import ModalObject
+from view.util.block_builder import block_builder
+from view.util.view_template_manager import template_manager
+from view.modals.modal import ModalObject
 from datetime import datetime
 
 ACTION_GROUP = "event_spread"
@@ -25,6 +25,7 @@ class CalendarSpreadModalObject(ModalObject):
                 "line_5_actions_changable",  # static_select(event) or member_select
             ),
         )
+        self.register_to_modal_manager(self)
 
     def create_modal(self):
         template = template_manager.get_view_template_by_name(ACTION_GROUP)
@@ -164,3 +165,6 @@ class CalendarSpreadModalObject(ModalObject):
 
     def action_id(self, action_type):
         return f"{ACTION_GROUP}-{action_type}"
+
+
+original = CalendarSpreadModalObject()

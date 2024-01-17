@@ -1,10 +1,11 @@
-from views.util.view_template_manager import template_manager
-from views.util.block_builder import block_builder
-
+from view.util.view_template_manager import template_manager
+from view.util.block_builder import block_builder
+from view.util.modal_manager import modal_manager
 
 ACTION_GROUP = "default"
 
 
+# Standard of ModalObject
 # Abstract class for ModalObject classes
 class ModalObject:
     def __init__(
@@ -26,6 +27,8 @@ class ModalObject:
                 "line_2_default",
             ),
         )
+
+        self.register_to_modal_manager(self)
 
     # 아직 실제로 사용되지 않음
     def create_modal(self):
@@ -57,6 +60,9 @@ class ModalObject:
         self.set_view_component_properties(view=view, key="close", value="취소")
 
         return view
+
+    def register_to_modal_manager(self):
+        modal_manager.add_modal_object(self)
 
     def set_modal(self, new_modal):
         self.__modal__ = new_modal
