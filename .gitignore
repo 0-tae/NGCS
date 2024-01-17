@@ -4,3 +4,4 @@ credentials.json
 tokens
 __pycache__/
 *.py[cod]
+cnu_notification
