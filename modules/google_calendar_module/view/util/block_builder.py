@@ -278,6 +278,14 @@ class BlockBuilder:
             "action_id": action_id,
         }
 
+    def create_single_block_context(self, text):
+        return {
+            "type": "context",
+            "elements": [
+                {"type": "mrkdwn", "text": text},
+            ],
+        }
+
     def compose(self, blocks):
         block_list = list()
         for block in blocks:

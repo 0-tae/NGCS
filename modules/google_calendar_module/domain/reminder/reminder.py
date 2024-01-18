@@ -54,7 +54,7 @@ def today_events_post_all():
             channel_id=user_id, text=hello_text, blocks=composed_blocks
         )
 
-    return "ok", 200
+    return {"ok":True}
 
 
 scheduler.add_cron_scheduler("alert_event", today_events_post_all, hour=17, minute=30)

@@ -8,9 +8,8 @@ from schema.schemas import SlackResponse
 router = APIRouter()
 
 
-@router.get("/api/auth/slack/invite")
+@router.post("/api/auth/slack/invite")
 def handling_invite(reqeust: Request):
-    print(util.json_prettier(request.body()))
     data = {
         d.split("=")[0]: d.split("=")[1]
         for d in reqeust.body().decode("utf-8").split("&")

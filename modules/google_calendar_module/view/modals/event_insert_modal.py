@@ -30,8 +30,6 @@ class CalendarEventModalObject(ModalObject):
             ),
         )
 
-        self.register_to_modal_manager(self)
-
     # 일정 등록 모달창을 생성함
     def create_modal(self):
         template = template_manager.get_view_template_by_name(ACTION_GROUP)
@@ -170,3 +168,5 @@ class CalendarEventModalObject(ModalObject):
 
     def action_id(self, action_type):
         return f"{ACTION_GROUP}-{action_type}"
+
+original = CalendarEventModalObject()
