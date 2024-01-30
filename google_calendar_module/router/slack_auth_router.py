@@ -36,4 +36,4 @@ def handling_oauth2(request: Request):
     slackAPI.oauth_v2_access(
         code=code, client_id=client_id, client_secret=client_secret
     )
-    return SlackResponse(ok=True)
+    return HttpResponse(ok=True)
