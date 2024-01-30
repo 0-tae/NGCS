@@ -1,7 +1,7 @@
-from _slack.slack_api import slackAPI
+from domain.slack.slack_api import slackAPI
 from view.util.block_builder import block_builder
-from _google.google_calendar_api import calendarAPI
-from _google.google_auth import google_auth
+from domain.google.google_calendar_api import calendarAPI
+from domain.google.google_auth import google_auth
 import copy
 
 OAUTH_URL = google_auth.get_auth_url()

@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Request
 from fastapi.responses import RedirectResponse, HTMLResponse
-from _google.google_auth import google_auth
+from domain.google.google_auth import google_auth
 from view.apphome.apphome import apphome
-from schema.schemas import SlackResponse
+from schemas import HttpResponse
 
 router = APIRouter()
 

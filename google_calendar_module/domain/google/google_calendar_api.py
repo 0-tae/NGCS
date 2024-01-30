@@ -1,6 +1,6 @@
 from datetime import datetime
 import pytz
-from _google.google_auth import google_auth
+from domain.google.google_auth import google_auth
 from googleapiclient.errors import HttpError
 from googleapiclient.discovery import build
 

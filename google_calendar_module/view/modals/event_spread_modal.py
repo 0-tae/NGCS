@@ -25,7 +25,7 @@ class CalendarSpreadModalObject(ModalObject):
                 "line_5_actions_changable",  # static_select(event) or member_select
             ),
         )
-        self.register_to_modal_manager(self)
+
 
     def create_modal(self):
         template = template_manager.get_view_template_by_name(ACTION_GROUP)
@@ -167,4 +167,4 @@ class CalendarSpreadModalObject(ModalObject):
         return f"{ACTION_GROUP}-{action_type}"
 
 
-original = CalendarSpreadModalObject()
+original_object = CalendarSpreadModalObject()

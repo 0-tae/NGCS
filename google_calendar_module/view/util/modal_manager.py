@@ -1,4 +1,5 @@
 import copy, os, glob, importlib
+import util.common_util as util
 
 CACHE_EXPIRE = 30
 
@@ -21,11 +22,15 @@ class ModalManager:
             os.path.splitext(os.path.basename(file))[0] for file in module_files
         ]
 
+        # module의 인스턴스 가져오기
         for module_name in module_names:
             try:
                 module = importlib.import_module(f"view.modals.{module_name}")
-            except ImportError:
-                print(f"Error: Module '{module_name}' not found.")
+                object_name = "original_object"
+                instance = getattr(module, object_name)
+                self.add_modal_object(instance)
+            except ImportError as e:
+                util.debug_message(f"Error: Module '{module_name}', {e.args[0]}")
 
     # 캐시를 조회하고 모달을 가져오기
     def get_modal_object_by_name(self, modal_name, cache_id=None):

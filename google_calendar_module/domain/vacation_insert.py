@@ -1,7 +1,7 @@
-import _slack.slack_utils as util
-from _slack.slack_api import slackAPI
+import domain.slack.slack_utils as util
+from domain.slack.slack_api import slackAPI
 from view.util.modal_manager import modal_manager
-from _google.google_calendar_api import calendarAPI
+from domain.google.google_calendar_api import calendarAPI
 from datetime import datetime
 
 ACTION_GROUP = "vacation_insert"

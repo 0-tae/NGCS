@@ -1,14 +1,15 @@
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
+from typing import Union
 from urllib import parse
 import json
 from view.apphome.apphome import apphome
-import _slack.slack_utils as util
-from _google.google_auth import google_auth
+import domain.slack.slack_utils as util
+from domain.google.google_auth import google_auth
 from domain.event_spread import spread_service
 from domain.event_insert import event_insert_service
 from domain.vacation_insert import vacation_insert_service
-from schema.schemas import SlackResponse
+from schemas import HttpResponse, HttpErrorResponse
 
 # import logging
 # logging.basicConfig(level=logging.DEBUG)
@@ -18,7 +19,7 @@ router = APIRouter()
 
 @router.post(
     "/api/interaction",
-    response_model=SlackResponse,
+    response_model=Union[HttpResponse, HttpErrorResponse],
     response_model_exclude_defaults=True,
 )
 async def interactivity_controll(request: Request):
@@ -46,7 +47,7 @@ async def interactivity_controll(request: Request):
 def make_response(data: dict):
     ok = data.get("ok")
     response_action = data.setdefault("response_action", "default")
-    return SlackResponse(ok=ok, response_action=response_action)
+    return HttpResponse(ok=ok, response_action=response_action)
 
 
 def get_action_info(request_body):

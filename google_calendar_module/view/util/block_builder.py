@@ -112,13 +112,25 @@ class BlockBuilder:
 
         return {"type": "actions", "elements": elements}
 
-    def create_button(self, text, action_id, value=None):
-        return {
-            "type": "button",
-            "text": {"type": "plain_text", "text": text, "emoji": True},
-            "value": action_id if not value else value,
-            "action_id": action_id,
-        }
+    def create_button(self, text, action_id, value=None, style="default"):
+        if not (style == "default" or style == "primary" or style == "danger"):
+            raise ValueError(
+                f"Button의 style은 [default, primary, danger] 입니다. 현재 입력: {style}"
+            )
+
+        button = dict(
+            {
+                "type": "button",
+                "text": {"type": "plain_text", "text": text, "emoji": True},
+                "value": action_id if not value else value,
+                "action_id": action_id,
+            }
+        )
+
+        if style != "default":
+            button.update({"style": style})
+
+        return button
 
     def create_url_button(self, text, url, action_id):
         return {
@@ -177,16 +189,16 @@ class BlockBuilder:
             },
         )
 
-    def create_input_text(self, action_id, multiline=False):
+    def create_input_text(self, label, action_id, multiline=False, optional=True):
         return {
             "type": "input",
-            "optional": True,
+            "optional": optional,
             "element": {
                 "type": "plain_text_input",
                 "action_id": action_id,
                 "multiline": multiline,
             },
-            "label": {"type": "plain_text", "text": "일정", "emoji": True},
+            "label": {"type": "plain_text", "text": label, "emoji": True},
         }
 
     def create_input_datepicker(self, label, action_id):

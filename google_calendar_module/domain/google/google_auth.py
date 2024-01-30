@@ -1,13 +1,13 @@
 import json
 import os
-from _slack.slack_auth import slack_auth
+from domain.slack.slack_auth import slack_auth
 from requests_oauthlib import OAuth2Session
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 
 SCOPES = ["https://www.googleapis.com/auth/calendar.events"]
 HOST = slack_auth.get_from_credential("host")
-PREFIX = "_google/tokens"
+PREFIX = "domain/google/tokens"
 
 
 class GoogleAuth:

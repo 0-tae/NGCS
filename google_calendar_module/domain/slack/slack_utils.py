@@ -1,5 +1,5 @@
 import json
-from _slack.slack_api import slackAPI
+from domain.slack.slack_api import slackAPI
 
 
 def get_user_name(user_id):

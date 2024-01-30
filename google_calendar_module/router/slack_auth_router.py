@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Request
-from _slack.slack_auth import slack_auth
-from _slack.slack_api import slackAPI
+from domain.slack.slack_auth import slack_auth
+from domain.slack.slack_api import slackAPI
 from domain.invite import invite
-from schema.schemas import SlackResponse
+from schemas import HttpResponse
 
 
 router = APIRouter()
@@ -24,7 +24,7 @@ def handling_invite(reqeust: Request):
 
 @router.get(
     "/api/auth/slack/callback",
-    response_model=SlackResponse,
+    response_model=HttpResponse,
     response_model_exclude_none=True,
 )
 def handling_oauth2(request: Request):

@@ -1,7 +1,7 @@
 from datetime import datetime
-import _slack.slack_api as slackAPI
-import _slack.slack_utils as util
-from _google.google_calendar_api import calendarAPI
+import domain.slack.slack_api as slackAPI
+import domain.slack.slack_utils as util
+from domain.google.google_calendar_api import calendarAPI
 from domain.reminder.scheduler import scheduler
 from view.util.block_builder import block_builder
 
@@ -54,7 +54,7 @@ def today_events_post_all():
             channel_id=user_id, text=hello_text, blocks=composed_blocks
         )
 
-    return {"ok":True}
+    return {"ok": True}
 
 
 scheduler.add_cron_scheduler("alert_event", today_events_post_all, hour=17, minute=30)

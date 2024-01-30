@@ -24,7 +24,7 @@ SCOPES = [
     "users:write",
 ]
 
-PREFIX = "_slack/tokens"
+PREFIX = "domain/slack/tokens"
 
 
 class SlackAuth:

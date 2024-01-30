@@ -153,4 +153,4 @@ class CalendarVacationModalObject(ModalObject):
         return f"{ACTION_GROUP}-{action_type}"
 
 
-original = CalendarVacationModalObject()
+original_object = CalendarVacationModalObject()

@@ -1,6 +1,6 @@
 import requests
 import time
-from _slack.slack_auth import slack_auth
+from domain.slack.slack_auth import slack_auth
 
 HEADER = slack_auth.get_header()
 USER_LIST = []

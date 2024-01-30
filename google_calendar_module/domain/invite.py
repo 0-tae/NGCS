@@ -1,5 +1,5 @@
 from view.util.block_builder import block_builder
-from _slack.slack_auth import slack_auth
+from domain.slack.slack_auth import slack_auth
 
 ACTION_GROUP = "invite"
 

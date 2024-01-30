@@ -169,4 +169,4 @@ class CalendarEventModalObject(ModalObject):
     def action_id(self, action_type):
         return f"{ACTION_GROUP}-{action_type}"
 
-original = CalendarEventModalObject()
+original_object = CalendarEventModalObject()

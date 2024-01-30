@@ -1,6 +1,6 @@
-from _slack.slack_api import slackAPI
-from _google.google_calendar_api import calendarAPI
-import _slack.slack_utils as util
+from domain.slack.slack_api import slackAPI
+from domain.google.google_calendar_api import calendarAPI
+import domain.slack.slack_utils as util
 from view.util.modal_manager import modal_manager
 from datetime import datetime
 
